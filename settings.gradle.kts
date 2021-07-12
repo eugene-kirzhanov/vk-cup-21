@@ -15,10 +15,13 @@ pluginManagement {
             if (requested.id.id == "dagger.hilt.android.plugin") {
                 useModule("com.google.dagger:hilt-android-gradle-plugin:2.37")
             }
+            if (requested.id.id.startsWith("androidx.navigation.safeargs")) {
+                useModule("androidx.navigation:navigation-safe-args-gradle-plugin:2.4.0-alpha04")
+            }
         }
     }
 }
 
 rootProject.name = "VkCup21"
 includeBuild("buildConfig")
-include(":app")
+include(":app", ":core")

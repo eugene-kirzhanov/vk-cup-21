@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main_graph"
+    app:startDestination="@id/feature_selection_screen">
+
+    <fragment
+        android:id="@+id/feature_selection_screen"
+        android:name="by.anegin.vkcup21.ui.main.FeatureSelectionFragment"
+        tools:layout="@layout/fragment_feature_selection" />
+
+</navigation>

@@ -57,13 +57,18 @@ object Deps {
     object Hilt {
         private const val version = "2.37"
         private const val version2 = "1.0.0"
-        const val plugin = "com.google.dagger:hilt-android-gradle-plugin:$version"
         const val core = "com.google.dagger:hilt-core:$version"
         const val android = "com.google.dagger:hilt-android:$version"
         const val compiler = "com.google.dagger:hilt-compiler:$version"
         const val androidXCompiler = "androidx.hilt:hilt-compiler:$version2"
         const val androidXNavigation = "androidx.hilt:hilt-navigation-fragment:$version2"
-        const val androidXWork = "androidx.hilt:hilt-work:$version2"
+    }
+
+    object Navigation {
+        private const val version = "2.4.0-alpha04"
+        const val commonKtx = "androidx.navigation:navigation-common-ktx:$version"
+        const val fragmentKtx = "androidx.navigation:navigation-fragment-ktx:$version"
+        const val uiKtx = "androidx.navigation:navigation-ui-ktx:$version"
     }
 
     const val desugar = "com.android.tools:desugar_jdk_libs:1.1.5"

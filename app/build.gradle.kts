@@ -3,16 +3,13 @@ plugins {
 
     kotlin("android")
     kotlin("kapt")
-    kotlin("plugin.parcelize")
-    kotlin("plugin.serialization")
 
     id("dagger.hilt.android.plugin")
 
+    id("androidx.navigation.safeargs.kotlin")
+
     id("dependencies")
 }
-
-val debugProperties = loadProperties(project, ".appconfig/debug.properties")
-val releaseProperties = loadProperties(project, ".appconfig/release.properties", ".appconfig/debug.properties")
 
 android {
     compileSdkVersion(Versions.targetSdk)
@@ -41,6 +38,9 @@ android {
     }
 
     signingConfigs {
+        val debugProperties = loadProperties(project, ".appconfig/debug.properties")
+        val releaseProperties = loadProperties(project, ".appconfig/release.properties", ".appconfig/debug.properties")
+
         getByName("debug") {
             storeFile = File(project.rootDir, debugProperties.getProperty("KEYSTORE_FILE"))
             storePassword = debugProperties.getProperty("KEYSTORE_PASSWORD")
@@ -74,10 +74,14 @@ android {
     }
 
     kotlinOptions.jvmTarget = "1.8"
+
+    sourceSets["main"].java.srcDir("src/main/kotlin")
 }
 
 dependencies {
     coreLibraryDesugaring(Deps.desugar)
+
+    implementation(project(":core"))
 
     implementation(kotlin("stdlib-jdk8"))
 
@@ -103,7 +107,6 @@ dependencies {
     implementation(Deps.Hilt.android)
     kapt(Deps.Hilt.compiler)
     implementation(Deps.Hilt.androidXNavigation)
-    implementation(Deps.Hilt.androidXWork)
     kapt(Deps.Hilt.androidXCompiler)
 
     implementation(Deps.timber)
