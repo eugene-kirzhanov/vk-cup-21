@@ -1,24 +1,21 @@
 package by.anegin.vkcup21.di
 
+import by.anegin.vkcup21.core.nav.AppNavigator
 import by.anegin.vkcup21.core.nav.Navigator
-import by.anegin.vkcup21.nav.AppNavigator
-import by.anegin.vkcup21.nav.VkCupAppNavigator
+import by.anegin.vkcup21.core.nav.VkCupAppNavigator
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
-import dagger.hilt.android.components.ActivityComponent
-import dagger.hilt.android.scopes.ActivityScoped
+import dagger.hilt.components.SingletonComponent
 
 @Module
-@InstallIn(ActivityComponent::class)
+@InstallIn(SingletonComponent::class)
 interface UiModule {
 
     @Binds
-    @ActivityScoped
     fun bindAppNavigator(impl: VkCupAppNavigator): AppNavigator
 
     @Binds
-    @ActivityScoped
     fun bindNavigatorSource(impl: VkCupAppNavigator): Navigator.Source
 
 }

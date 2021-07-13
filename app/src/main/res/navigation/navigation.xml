@@ -7,7 +7,17 @@
 
     <fragment
         android:id="@+id/feature_selection_screen"
-        android:name="by.anegin.vkcup21.ui.main.FeatureSelectionFragment"
-        tools:layout="@layout/fragment_feature_selection" />
+        android:name="by.anegin.vkcup21.features.main.FeatureSelectionFragment"
+        tools:layout="@layout/fragment_feature_selection">
+        <action
+            android:id="@+id/to_taxi_feature"
+            app:destination="@id/feature_graph_taxi" />
+    </fragment>
+
+    <include-dynamic
+        android:id="@+id/feature_graph_taxi"
+        app:graphPackage="by.anegin.vkcup21.taxi"
+        app:graphResName="navigation_taxi"
+        app:moduleName="taxi" />
 
 </navigation>

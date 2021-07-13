@@ -1,14 +1,9 @@
 plugins {
     id("com.android.application")
-
     kotlin("android")
     kotlin("kapt")
-
     id("dagger.hilt.android.plugin")
-
     id("androidx.navigation.safeargs.kotlin")
-
-    id("dependencies")
 }
 
 android {
@@ -19,13 +14,12 @@ android {
         minSdkVersion(Versions.minSdk)
         targetSdkVersion(Versions.targetSdk)
 
+        applicationId = Versions.applicationId
+
         versionName = Versions.versionName
-        versionCode = 1
+        versionCode = Versions.versionCode
 
         kapt {
-            arguments {
-                arg("dagger.fastInit", "enabled")
-            }
             javacOptions {
                 option("-Adagger.fastInit=ENABLED")
                 option("-Adagger.hilt.android.internal.disableAndroidSuperclassValidation=true")
@@ -33,9 +27,11 @@ android {
         }
     }
 
-    buildFeatures {
-        viewBinding = true
-    }
+    buildFeatures.viewBinding = true
+
+    dynamicFeatures = mutableSetOf(
+        ":features:taxi"
+    )
 
     signingConfigs {
         val debugProperties = loadProperties(project, ".appconfig/debug.properties")
@@ -61,14 +57,12 @@ android {
         }
         getByName("release") {
             signingConfig = signingConfigs.getByName("release")
-            isShrinkResources = true
             isMinifyEnabled = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
 
     compileOptions {
-        isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8
     }
@@ -76,47 +70,43 @@ android {
     kotlinOptions.jvmTarget = "1.8"
 
     sourceSets["main"].java.srcDir("src/main/kotlin")
+
+    kapt {
+        useBuildCache = true
+        correctErrorTypes = true
+    }
 }
 
 dependencies {
-    coreLibraryDesugaring(Deps.desugar)
-
-    implementation(project(":core"))
-
     implementation(kotlin("stdlib-jdk8"))
 
-    implementation(Deps.KotlinXSerialization.json)
+    api(Deps.Coroutines.core)
+    api(Deps.Coroutines.android)
 
-    implementation(Deps.Coroutines.core)
-    implementation(Deps.Coroutines.android)
+    api(Deps.AndroidX.coreKtx)
+    api(Deps.AndroidX.appCompat)
+    api(Deps.AndroidX.activity)
+    api(Deps.AndroidX.fragment)
+    api(Deps.AndroidX.constraintLayout)
 
-    implementation(Deps.AndroidX.coreKtx)
-    implementation(Deps.AndroidX.appCompat)
-    implementation(Deps.AndroidX.activity)
-    implementation(Deps.AndroidX.fragment)
-    implementation(Deps.AndroidX.recyclerView)
-    implementation(Deps.AndroidX.constraintLayout)
+    api(Deps.Design.material)
 
-    implementation(Deps.Design.material)
+    api(Deps.Lifecycle.runtime)
+    api(Deps.Lifecycle.viewModel)
+    api(Deps.Lifecycle.liveData)
+    api(Deps.Lifecycle.java8)
 
-    implementation(Deps.Lifecycle.runtime)
-    implementation(Deps.Lifecycle.viewModel)
-    implementation(Deps.Lifecycle.liveData)
-    implementation(Deps.Lifecycle.java8)
+    api(Deps.Dagger.Hilt.android)
+    kapt(Deps.Dagger.Hilt.compiler)
+    kapt(Deps.Dagger.Hilt.AndroidX.compiler)
 
-    implementation(Deps.Hilt.android)
-    kapt(Deps.Hilt.compiler)
-    implementation(Deps.Hilt.androidXNavigation)
-    kapt(Deps.Hilt.androidXCompiler)
+    api(Deps.Navigation.fragmentKtx)
+    api(Deps.Navigation.uiKtx)
+    api(Deps.Navigation.dynamicFeature)
 
-    implementation(Deps.timber)
+    api(Deps.timber)
 
-    implementation(Deps.viewBindingPropertyDelegate)
-}
-
-kapt {
-    useBuildCache = true
-    correctErrorTypes = true
+    api(Deps.viewBindingPropertyDelegate)
 }
 
 fun loadProperties(project: Project, propertiesFileName: String, fallbackPropertiesFileName: String? = null) =
