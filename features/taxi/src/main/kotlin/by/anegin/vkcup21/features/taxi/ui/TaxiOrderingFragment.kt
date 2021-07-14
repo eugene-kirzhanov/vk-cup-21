@@ -8,9 +8,12 @@ import android.os.Bundle
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.postDelayed
 import androidx.core.view.updateLayoutParams
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -25,6 +28,7 @@ import by.anegin.vkcup21.di.taxi.TaxiModuleDependencies
 import by.anegin.vkcup21.taxi.R
 import by.anegin.vkcup21.taxi.databinding.FragmentTaxiOrderingBinding
 import by.kirich1409.viewbindingdelegate.viewBinding
+import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.mapbox.mapboxsdk.Mapbox
 import com.mapbox.mapboxsdk.camera.CameraPosition
@@ -45,7 +49,7 @@ import javax.inject.Inject
 class TaxiOrderingFragment : Fragment(R.layout.fragment_taxi_ordering) {
 
     companion object {
-        private const val DEFAULT_ZOOM = 16.0
+        private const val DEFAULT_ZOOM = 15.0
     }
 
     @Inject
@@ -71,6 +75,8 @@ class TaxiOrderingFragment : Fragment(R.layout.fragment_taxi_ordering) {
         isPermissionGranted && !isMyLocationOnScreen
     }
 
+    private var bottomSheetBehavior: BottomSheetBehavior<*>? = null
+
     override fun onAttach(context: Context) {
         super.onAttach(context)
 
@@ -93,13 +99,77 @@ class TaxiOrderingFragment : Fragment(R.layout.fragment_taxi_ordering) {
                 .getInsets(WindowInsetsCompat.Type.systemBars())
             systemBarInsets = systemBars.top to systemBars.bottom
 
-            binding.buttonMyLocation.updateLayoutParams<ViewGroup.MarginLayoutParams> {
-                bottomMargin = systemBars.bottom +
-                    view.context.resources.getDimensionPixelSize(R.dimen.fab_margin)
+            binding.bottomSheetAddressess.textAddressesTitle.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+                topMargin = systemBars.top
+            }
+            binding.bottomSheetAddressess.buttonCloseAddresses.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+                topMargin = systemBars.top
             }
 
             WindowInsetsCompat.CONSUMED.toWindowInsets()
         }
+
+        val bottomSheetLayoutParams = binding.bottomSheetAddressess.root.layoutParams as? CoordinatorLayout.LayoutParams
+        bottomSheetBehavior = bottomSheetLayoutParams?.behavior as? BottomSheetBehavior<*>
+        bottomSheetBehavior?.state = BottomSheetBehavior.STATE_HIDDEN
+        view.postDelayed(1200) {
+            bottomSheetBehavior?.state = BottomSheetBehavior.STATE_COLLAPSED
+            bottomSheetBehavior?.isHideable = false
+        }
+
+        bottomSheetBehavior?.addBottomSheetCallback(object : BottomSheetBehavior.BottomSheetCallback() {
+            override fun onSlide(bottomSheet: View, slideOffset: Float) {
+                val treshold = 0.5f
+                val offsetWithTreshold = if (slideOffset > treshold) (slideOffset - treshold) / (1f - treshold) else 0f
+
+                val addressesContainerTopMargin =
+                    (slideOffset * (resources.getDimension(R.dimen.addresses_container_expanded_top_margin) + systemBarInsets.first)).toInt()
+                val addressesContainerHorizontalMargins =
+                    (slideOffset * resources.getDimension(R.dimen.addresses_container_expanded_horizontal_margins)).toInt()
+                val addressesContainerElevation =
+                    offsetWithTreshold * resources.getDimension(R.dimen.addresses_container_expanded_elevation)
+                binding.bottomSheetAddressess.addressesContainer.apply {
+                    elevation = addressesContainerElevation
+                    updateLayoutParams<ViewGroup.MarginLayoutParams> {
+                        topMargin = addressesContainerTopMargin
+                        leftMargin = addressesContainerHorizontalMargins
+                        rightMargin = addressesContainerHorizontalMargins
+                    }
+                }
+
+                binding.bottomSheetAddressess.textAddressesTitle.apply {
+                    alpha = offsetWithTreshold
+                    scaleX = offsetWithTreshold
+                    scaleY = offsetWithTreshold
+                }
+                binding.bottomSheetAddressess.buttonCloseAddresses.apply {
+                    alpha = offsetWithTreshold
+                    scaleX = offsetWithTreshold
+                    scaleY = offsetWithTreshold
+                }
+
+                updateMapLogoAndAttributionPosition()
+            }
+
+            override fun onStateChanged(bottomSheet: View, newState: Int) {}
+        })
+
+        binding.bottomSheetAddressess.buttonCloseAddresses.setOnClickListener {
+            bottomSheetBehavior?.state = BottomSheetBehavior.STATE_COLLAPSED
+        }
+
+        requireActivity().onBackPressedDispatcher.addCallback(
+            viewLifecycleOwner,
+            object : OnBackPressedCallback(true) {
+                override fun handleOnBackPressed() {
+                    if (bottomSheetBehavior?.state == BottomSheetBehavior.STATE_EXPANDED) {
+                        bottomSheetBehavior?.state = BottomSheetBehavior.STATE_COLLAPSED
+                    } else {
+                        appNavigator.navigateUp()
+                    }
+                }
+            }
+        )
 
         binding.mapView.onCreate(savedInstanceState)
         binding.mapView.addOnCameraWillChangeListener {
@@ -162,6 +232,7 @@ class TaxiOrderingFragment : Fragment(R.layout.fragment_taxi_ordering) {
     }
 
     override fun onDestroyView() {
+        bottomSheetBehavior = null
         activity?.window?.clearFlags(WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS)
         binding.mapView.onDestroy()
         super.onDestroyView()
@@ -206,13 +277,10 @@ class TaxiOrderingFragment : Fragment(R.layout.fragment_taxi_ordering) {
     private fun onMapReady(map: MapboxMap) {
         this.map = map
 
-        val (_, bottomInset) = systemBarInsets
-        map.uiSettings.apply {
-            setAttributionMargins(attributionMarginLeft, attributionMarginTop, attributionMarginRight, bottomInset + attributionMarginBottom)
-            setLogoMargins(logoMarginLeft, logoMarginTop, logoMarginRight, bottomInset + logoMarginBottom)
-        }
+        updateMapLogoAndAttributionPosition()
 
         map.uiSettings.isCompassEnabled = false
+        map.uiSettings.isTiltGesturesEnabled = false
 
         map.setStyle(Style.MAPBOX_STREETS) { loadedStyle ->
 
@@ -285,6 +353,16 @@ class TaxiOrderingFragment : Fragment(R.layout.fragment_taxi_ordering) {
                 projection.visibleRegion.latLngBounds.contains(LatLng(it.latitude, it.longitude))
             } ?: true
         } ?: true
+    }
+
+    private fun updateMapLogoAndAttributionPosition() {
+        map?.uiSettings?.apply {
+            val defaultLogoMargin = resources.getDimension(com.mapbox.mapboxsdk.R.dimen.mapbox_four_dp)
+            var bottomMargin = (binding.root.height - binding.bottomSheetAddressess.root.y + defaultLogoMargin).toInt()
+            if (bottomMargin < systemBarInsets.second) bottomMargin = (systemBarInsets.second + defaultLogoMargin).toInt()
+            setLogoMargins(logoMarginLeft, logoMarginTop, logoMarginRight, bottomMargin)
+            setAttributionMargins(attributionMarginLeft, attributionMarginTop, attributionMarginRight, bottomMargin)
+        }
     }
 
 }

@@ -2,4 +2,9 @@
 <resources>
     <dimen name="fab_size">44dp</dimen>
     <dimen name="fab_margin">16dp</dimen>
+
+    <dimen name="bottom_sheet_peek_height">156dp</dimen>
+    <dimen name="addresses_container_expanded_horizontal_margins">12dp</dimen>
+    <dimen name="addresses_container_expanded_top_margin">64dp</dimen>
+    <dimen name="addresses_container_expanded_elevation">8dp</dimen>
 </resources>

@@ -2,4 +2,6 @@
 <resources>
     <color name="my_location_marker_accuracy">#1A735CE6</color>
     <color name="my_location_marker_foreground_color">#735CE6</color>
+
+    <color name="input_stroke_color">#1F000000</color>
 </resources>

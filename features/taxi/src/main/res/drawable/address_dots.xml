@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item
+        android:width="2dp"
+        android:height="2dp"
+        android:drawable="@drawable/dot" />
+
+    <item
+        android:width="2dp"
+        android:height="2dp"
+        android:drawable="@drawable/dot"
+        android:top="6dp" />
+
+    <item
+        android:width="2dp"
+        android:height="2dp"
+        android:drawable="@drawable/dot"
+        android:top="12dp" />
+
+    <item
+        android:width="2dp"
+        android:height="2dp"
+        android:drawable="@drawable/dot"
+        android:top="18dp" />
+
+    <item
+        android:width="2dp"
+        android:height="2dp"
+        android:drawable="@drawable/dot"
+        android:top="24dp" />
+
+</layer-list>
