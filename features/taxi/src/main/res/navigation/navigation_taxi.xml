@@ -7,7 +7,7 @@
 
     <fragment
         android:id="@+id/taxi_ordering"
-        android:name="by.anegin.vkcup21.features.taxi.TaxiOrderingFragment"
+        android:name="by.anegin.vkcup21.features.taxi.ui.TaxiOrderingFragment"
         tools:layout="@layout/fragment_taxi_ordering" />
 
 </navigation>

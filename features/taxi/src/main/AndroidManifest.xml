@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:dist="http://schemas.android.com/apk/distribution"
-    package="by.anegin.vkcup21.features.taxi">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:dist="http://schemas.android.com/apk/distribution"
+    package="by.anegin.vkcup21.taxi">
 
     <dist:module
         dist:instant="false"
@@ -10,5 +11,9 @@
         </dist:delivery>
         <dist:fusing dist:include="true" />
     </dist:module>
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 
 </manifest>

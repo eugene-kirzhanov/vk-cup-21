@@ -2,7 +2,6 @@ plugins {
     id("com.android.dynamic-feature")
     kotlin("android")
     kotlin("kapt")
-    id("androidx.navigation.safeargs.kotlin")
 }
 
 android {
@@ -10,13 +9,8 @@ android {
     buildToolsVersion(Versions.buildTools)
 
     defaultConfig {
-        applicationId = "${Versions.applicationId}.features.taxi"
-
         minSdkVersion(Versions.minSdk)
         targetSdkVersion(Versions.targetSdk)
-
-        versionName = Versions.versionName
-        versionCode = Versions.versionCode
 
         kapt {
             javacOptions {
@@ -27,13 +21,6 @@ android {
     }
 
     buildFeatures.viewBinding = true
-
-    buildTypes {
-        getByName("release") {
-            isMinifyEnabled = false
-            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-        }
-    }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
@@ -55,5 +42,20 @@ dependencies {
 
     implementation(kotlin("stdlib-jdk8"))
 
+    implementation(Deps.Coroutines.playServices)
+
+    implementation(Deps.AndroidX.preferences)
+
     kapt(Deps.Dagger.compiler)
+
+    implementation(Deps.PlayServices.location)
+
+    implementation(Deps.MapBox.sdk)
+    implementation(Deps.MapBox.localizationPlugin)
+}
+
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
+    kotlinOptions.freeCompilerArgs += listOf(
+        "-Xuse-experimental=kotlinx.coroutines.ExperimentalCoroutinesApi",
+    )
 }

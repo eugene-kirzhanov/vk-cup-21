@@ -1,5 +1,4 @@
 <resources>
     <string name="app_name">VkCup</string>
-    <string name="feature_title_main" translatable="false">Main</string>
     <string name="feature_title_taxi" translatable="false">Taxi</string>
 </resources>

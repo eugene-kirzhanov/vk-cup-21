@@ -1,6 +1,37 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
+
+    <com.mapbox.mapboxsdk.maps.MapView
+        android:id="@+id/mapView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:mapbox_cameraTargetLat="59.935840"
+        app:mapbox_cameraTargetLng="30.325875"
+        app:mapbox_cameraZoom="9.0"
+        app:mapbox_renderTextureMode="true" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="144dp"
+        android:background="@drawable/status_bar_fade" />
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/button_my_location"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="end|bottom"
+        android:layout_marginEnd="@dimen/fab_margin"
+        android:layout_marginBottom="@dimen/fab_margin"
+        android:contentDescription="@null"
+        android:padding="0dp"
+        android:src="@drawable/ic_action_mylocation"
+        android:visibility="gone"
+        app:backgroundTint="#ffffff"
+        app:fabCustomSize="@dimen/fab_size"
+        tools:visibility="visible" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

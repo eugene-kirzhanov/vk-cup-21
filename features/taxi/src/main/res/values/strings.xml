@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="system.location_permission_rationale_title">Enable location access</string>
+    <string name="system.location_permission_rationale_message">So we can easily find where you are on the map</string>
+    <string name="common.continue">Continue</string>
+</resources>

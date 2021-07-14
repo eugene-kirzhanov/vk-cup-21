@@ -15,7 +15,6 @@ android {
         targetSdkVersion(Versions.targetSdk)
 
         applicationId = Versions.applicationId
-
         versionName = Versions.versionName
         versionCode = Versions.versionCode
 
@@ -107,6 +106,8 @@ dependencies {
     api(Deps.timber)
 
     api(Deps.viewBindingPropertyDelegate)
+
+    implementation(Deps.PlayServices.basement)
 }
 
 fun loadProperties(project: Project, propertiesFileName: String, fallbackPropertiesFileName: String? = null) =

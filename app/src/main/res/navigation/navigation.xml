@@ -7,7 +7,7 @@
 
     <fragment
         android:id="@+id/feature_selection_screen"
-        android:name="by.anegin.vkcup21.features.main.FeatureSelectionFragment"
+        android:name="by.anegin.vkcup21.internal.ui.main.FeatureSelectionFragment"
         tools:layout="@layout/fragment_feature_selection">
         <action
             android:id="@+id/to_taxi_feature"
