@@ -1,9 +1,10 @@
-package by.anegin.vkcup21.features.taxi.location
+package by.anegin.vkcup21.features.taxi.tools.impl.gms
 
 import android.content.Context
 import android.location.Location
 import android.os.Looper
 import by.anegin.vkcup21.di.ApplicationScope
+import by.anegin.vkcup21.features.taxi.tools.LocationProvider
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult

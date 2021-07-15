@@ -6,4 +6,6 @@
 
     <string name="address.source_hint">Source address</string>
     <string name="address.destination_hint">Destination address</string>
+
+    <string name="common.done">Done</string>
 </resources>

@@ -6,4 +6,6 @@
 
     <string name="address.source_hint">Откуда поедем?</string>
     <string name="address.destination_hint">Куда поедем?</string>
+
+    <string name="common.done">Готово</string>
 </resources>

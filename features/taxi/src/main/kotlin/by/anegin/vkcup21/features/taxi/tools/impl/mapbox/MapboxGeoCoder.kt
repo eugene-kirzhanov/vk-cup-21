@@ -1,24 +1,17 @@
-package by.anegin.vkcup21.features.taxi.geo
+package by.anegin.vkcup21.features.taxi.tools.impl.mapbox
 
 import android.content.Context
 import by.anegin.vkcup21.di.IoDispatcher
+import by.anegin.vkcup21.features.taxi.tools.GeoCoder
 import by.anegin.vkcup21.taxi.R
 import com.mapbox.api.geocoding.v5.GeocodingCriteria
 import com.mapbox.api.geocoding.v5.MapboxGeocoding
-import com.mapbox.api.geocoding.v5.models.GeocodingResponse
 import com.mapbox.geojson.Point
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
-import java.io.IOException
 import javax.inject.Inject
-import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
 
-class MapBoxGeoCoder @Inject constructor(
+class MapboxGeoCoder @Inject constructor(
     private val context: Context,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher
 ) : GeoCoder {
@@ -30,7 +23,7 @@ class MapBoxGeoCoder @Inject constructor(
             .geocodingTypes(GeocodingCriteria.TYPE_ADDRESS)
             .mode(GeocodingCriteria.MODE_PLACES)
             .build()
-        val response = client.call()
+        val response = MapboxUtil.makeCall(client::enqueueCall, client::cancelCall)
         response.features().firstOrNull()?.let {
             val text = it.text().orEmpty()
             val address = it.address().orEmpty()
@@ -46,25 +39,6 @@ class MapBoxGeoCoder @Inject constructor(
                 else -> null
             }
         }
-    }
-
-    private suspend fun MapboxGeocoding.call() = suspendCancellableCoroutine<GeocodingResponse> { continuation ->
-        continuation.invokeOnCancellation {
-            cancelCall()
-        }
-        enqueueCall(object : Callback<GeocodingResponse> {
-            override fun onResponse(call: Call<GeocodingResponse>, response: Response<GeocodingResponse>) {
-                response.body()?.let { body ->
-                    continuation.resume(body)
-                } ?: run {
-                    continuation.resumeWithException(IOException("Empty response body"))
-                }
-            }
-
-            override fun onFailure(call: Call<GeocodingResponse>, t: Throwable) {
-                continuation.resumeWithException(t)
-            }
-        })
     }
 
 }

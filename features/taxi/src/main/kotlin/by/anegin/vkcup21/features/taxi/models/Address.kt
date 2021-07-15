@@ -1,4 +1,4 @@
-package by.anegin.vkcup21.features.taxi.ui
+package by.anegin.vkcup21.features.taxi.models
 
 class Address(
     val latitude: Double,

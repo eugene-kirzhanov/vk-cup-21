@@ -1,4 +1,4 @@
-package by.anegin.vkcup21.features.taxi.ui
+package by.anegin.vkcup21.features.taxi.models
 
 sealed class GeoCodeQuery(
     val source: Address.Source

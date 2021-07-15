@@ -1,4 +1,4 @@
-package by.anegin.vkcup21.features.taxi.util
+package by.anegin.vkcup21.features.taxi.ui.util
 
 import android.content.Context
 import android.util.AttributeSet

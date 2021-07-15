@@ -56,6 +56,10 @@ dependencies {
 
     implementation(Deps.MapBox.sdk)
     implementation(Deps.MapBox.services)
+    implementation(Deps.MapBox.turf)
+    implementation(Deps.MapBox.navigation) {
+        exclude(group = "com.mapbox.mapboxsdk", module = "mapbox-android-telemetry")
+    }
     implementation(Deps.MapBox.annotationPlugnin)
     implementation(Deps.MapBox.localizationPlugin)
 }

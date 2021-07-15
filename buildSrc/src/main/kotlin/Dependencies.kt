@@ -87,7 +87,9 @@ object Deps {
 
     object MapBox {
         const val sdk = "com.mapbox.mapboxsdk:mapbox-android-sdk:9.6.2"
-        const val services = "com.mapbox.mapboxsdk:mapbox-sdk-services:5.5.0"
+        const val services = "com.mapbox.mapboxsdk:mapbox-sdk-services:5.8.0"
+        const val turf = "com.mapbox.mapboxsdk:mapbox-sdk-turf:5.8.0"
+        const val navigation = "com.mapbox.navigation:ui:1.6.1"
         const val annotationPlugnin = "com.mapbox.mapboxsdk:mapbox-android-plugin-annotation-v9:0.9.0"
         const val localizationPlugin = "com.mapbox.mapboxsdk:mapbox-android-plugin-localization-v9:0.12.0"
     }

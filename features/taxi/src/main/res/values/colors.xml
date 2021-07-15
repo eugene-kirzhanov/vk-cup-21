@@ -3,6 +3,8 @@
     <color name="my_location_marker_accuracy">#1A735CE6</color>
     <color name="my_location_marker_foreground_color">#735CE6</color>
 
+    <color name="route_line">#725BE3</color>
+
     <color name="input_box_stroke_normal">#1F000000</color>
     <color name="input_box_stroke_focused">#55000000</color>
     <color name="input_text">#000000</color>

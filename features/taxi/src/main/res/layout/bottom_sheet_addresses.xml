@@ -169,4 +169,28 @@
 
     </androidx.cardview.widget.CardView>
 
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/button_done"
+        android:layout_width="0dp"
+        android:layout_height="44dp"
+        android:layout_marginStart="12dp"
+        android:layout_marginTop="12dp"
+        android:layout_marginEnd="12dp"
+        android:alpha="0"
+        android:insetTop="0dp"
+        android:insetBottom="0dp"
+        android:letterSpacing="-0.0013"
+        android:scaleX="0"
+        android:scaleY="0"
+        android:text="@string/common.done"
+        android:textAllCaps="false"
+        android:textSize="17sp"
+        app:cornerRadius="10dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/addresses_container"
+        tools:alpha="1"
+        tools:scaleX="1"
+        tools:scaleY="1" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -29,11 +29,15 @@ import by.anegin.vkcup21.core.util.observe
 import by.anegin.vkcup21.core.util.showKeyboard
 import by.anegin.vkcup21.di.taxi.DaggerTaxiComponent
 import by.anegin.vkcup21.di.taxi.TaxiModuleDependencies
+import by.anegin.vkcup21.features.taxi.models.Address
+import by.anegin.vkcup21.features.taxi.models.AddressMode
 import by.anegin.vkcup21.taxi.R
 import by.anegin.vkcup21.taxi.databinding.FragmentTaxiOrderingBinding
 import by.kirich1409.viewbindingdelegate.viewBinding
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.mapbox.core.constants.Constants.PRECISION_6
+import com.mapbox.geojson.LineString
 import com.mapbox.mapboxsdk.Mapbox
 import com.mapbox.mapboxsdk.camera.CameraPosition
 import com.mapbox.mapboxsdk.camera.CameraUpdateFactory
@@ -49,7 +53,11 @@ import com.mapbox.mapboxsdk.plugins.annotation.Symbol
 import com.mapbox.mapboxsdk.plugins.annotation.SymbolManager
 import com.mapbox.mapboxsdk.plugins.annotation.SymbolOptions
 import com.mapbox.mapboxsdk.plugins.localization.LocalizationPlugin
+import com.mapbox.mapboxsdk.style.layers.LineLayer
+import com.mapbox.mapboxsdk.style.layers.Property
 import com.mapbox.mapboxsdk.style.layers.Property.ICON_ROTATION_ALIGNMENT_VIEWPORT
+import com.mapbox.mapboxsdk.style.layers.PropertyFactory
+import com.mapbox.mapboxsdk.style.sources.GeoJsonSource
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
@@ -61,6 +69,9 @@ class TaxiOrderingFragment : Fragment(R.layout.fragment_taxi_ordering) {
         private const val DEFAULT_ZOOM = 15.0
 
         private const val IMAGE_ID_ADDRESS_PIN = "address_pin"
+
+        private const val ROUTE_LAYER_ID = "route-layer-id"
+        private const val ROUTE_SOURCE_ID = "route-source-id"
     }
 
     @Inject
@@ -157,6 +168,13 @@ class TaxiOrderingFragment : Fragment(R.layout.fragment_taxi_ordering) {
                     scaleY = offsetWithTreshold
                 }
 
+                val doneButtonState = if (viewModel.route.value != null) 1f - slideOffset else 0f
+                binding.bottomSheetAddressess.buttonDone.apply {
+                    alpha = doneButtonState
+                    scaleX = doneButtonState
+                    scaleY = doneButtonState
+                }
+
                 updateMapLogoAndAttributionPosition()
             }
 
@@ -245,9 +263,13 @@ class TaxiOrderingFragment : Fragment(R.layout.fragment_taxi_ordering) {
         }
 
         viewModel.currentAddressType.observe(viewLifecycleOwner) { addressType ->
-            val (sourceStrokeWidth, destStrokeWidth) = when (addressType) {
-                Address.Type.SOURCE -> 2f.dp.toInt() to 0.5f.dp.toInt()
-                Address.Type.DESTINATION -> 0.5f.dp.toInt() to 2f.dp.toInt()
+            val (sourceStrokeWidth, destStrokeWidth, addressTitle) = when (addressType) {
+                Address.Type.SOURCE -> {
+                    Triple(2f.dp.toInt(), 0.5f.dp.toInt(), getString(R.string.address_source_hint))
+                }
+                Address.Type.DESTINATION -> {
+                    Triple(0.5f.dp.toInt(), 2f.dp.toInt(), getString(R.string.address_destination_hint))
+                }
             }
             binding.bottomSheetAddressess.inputSourceAddress.apply {
                 boxStrokeWidth = sourceStrokeWidth
@@ -257,6 +279,7 @@ class TaxiOrderingFragment : Fragment(R.layout.fragment_taxi_ordering) {
                 boxStrokeWidth = destStrokeWidth
                 boxStrokeWidthFocused = destStrokeWidth
             }
+            binding.bottomSheetAddressess.textAddressesTitle.text = addressTitle
         }
         viewModel.sourceAddress.observe(viewLifecycleOwner) { address ->
             binding.bottomSheetAddressess.editSourceAddress.apply {
@@ -273,6 +296,17 @@ class TaxiOrderingFragment : Fragment(R.layout.fragment_taxi_ordering) {
 
         viewModel.myLocation.observe(viewLifecycleOwner) { myLocation ->
             maybeUpdateAddressMarkerByMyLocation(myLocation.latitude, myLocation.longitude)
+        }
+
+        viewModel.route.observe(viewLifecycleOwner) { route ->
+            updateDoneButtonState(isRouteAvailable = route != null)
+
+            route?.direstions?.geometry()?.let { geometry ->
+                map?.getStyle { style ->
+                    val routeGeoJson: GeoJsonSource? = style.getSourceAs(ROUTE_SOURCE_ID)
+                    routeGeoJson?.setGeoJson(LineString.fromPolyline(geometry, PRECISION_6))
+                }
+            }
         }
     }
 
@@ -358,14 +392,7 @@ class TaxiOrderingFragment : Fragment(R.layout.fragment_taxi_ordering) {
         map.uiSettings.isCompassEnabled = false
         map.uiSettings.isTiltGesturesEnabled = false
 
-        val addressMarkerDrawable = AppCompatResources.getDrawable(requireContext(), R.drawable.ic_address_pin)
-            ?: throw RuntimeException("Invalid address marker drawable")
-
-        val mapStyle = Style.Builder()
-            .fromUri(Style.MAPBOX_STREETS)
-            .withImage(IMAGE_ID_ADDRESS_PIN, addressMarkerDrawable)
-
-        map.setStyle(mapStyle) { loadedStyle ->
+        map.setStyle(Style.MAPBOX_STREETS) { loadedStyle ->
 
             val locationComponentOptions = LocationComponentOptions.builder(requireContext())
                 .trackingGesturesManagement(true)
@@ -387,6 +414,24 @@ class TaxiOrderingFragment : Fragment(R.layout.fragment_taxi_ordering) {
 
             updateMyLocationState(isPermissionGranted.value)
 
+            // === setup route layer ===
+
+            val routeLayer = LineLayer(ROUTE_LAYER_ID, ROUTE_SOURCE_ID)
+            routeLayer.setProperties(
+                PropertyFactory.lineCap(Property.LINE_CAP_ROUND),
+                PropertyFactory.lineJoin(Property.LINE_JOIN_ROUND),
+                PropertyFactory.lineWidth(5f),
+                PropertyFactory.lineColor(ContextCompat.getColor(requireContext(), R.color.route_line))
+            )
+            loadedStyle.addSource(GeoJsonSource(routeLayer.sourceId))
+            loadedStyle.addLayer(routeLayer)
+
+            // === setup markers layer ===
+
+            val addressMarkerDrawable = AppCompatResources.getDrawable(requireContext(), R.drawable.ic_address_pin)
+                ?: throw RuntimeException("Invalid address marker drawable")
+            loadedStyle.addImage(IMAGE_ID_ADDRESS_PIN, addressMarkerDrawable)
+
             symbolManager = SymbolManager(binding.mapView, map, loadedStyle).apply {
                 iconRotationAlignment = ICON_ROTATION_ALIGNMENT_VIEWPORT
                 iconAllowOverlap = true
@@ -403,6 +448,7 @@ class TaxiOrderingFragment : Fragment(R.layout.fragment_taxi_ordering) {
                     }
                 })
             }
+
         }
     }
 
@@ -504,6 +550,26 @@ class TaxiOrderingFragment : Fragment(R.layout.fragment_taxi_ordering) {
         } else {
             activity?.currentFocus?.clearFocus()
             hideKeyboard()
+        }
+    }
+
+    private fun updateDoneButtonState(isRouteAvailable: Boolean) {
+        if (isRouteAvailable) {
+            val peekHeight = resources.getDimensionPixelSize(R.dimen.bottom_sheet_peek_height_with_button)
+            bottomSheetBehavior?.setPeekHeight(peekHeight, true)
+            binding.bottomSheetAddressess.buttonDone.animate()
+                .scaleX(1f)
+                .scaleY(1f)
+                .alpha(1f)
+                .start()
+        } else {
+            val peekHeight = resources.getDimensionPixelSize(R.dimen.bottom_sheet_peek_height)
+            bottomSheetBehavior?.setPeekHeight(peekHeight, true)
+            binding.bottomSheetAddressess.buttonDone.animate()
+                .scaleX(0f)
+                .scaleY(0f)
+                .alpha(0f)
+                .start()
         }
     }
 

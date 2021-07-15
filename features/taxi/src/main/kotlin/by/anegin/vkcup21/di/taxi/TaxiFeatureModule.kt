@@ -4,10 +4,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import by.anegin.vkcup21.di.ViewModelFactory
 import by.anegin.vkcup21.di.ViewModelKey
-import by.anegin.vkcup21.features.taxi.geo.GeoCoder
-import by.anegin.vkcup21.features.taxi.geo.MapBoxGeoCoder
-import by.anegin.vkcup21.features.taxi.location.GmsLocationProvider
-import by.anegin.vkcup21.features.taxi.location.LocationProvider
+import by.anegin.vkcup21.features.taxi.tools.GeoCoder
+import by.anegin.vkcup21.features.taxi.tools.LocationProvider
+import by.anegin.vkcup21.features.taxi.tools.OrderManager
+import by.anegin.vkcup21.features.taxi.tools.RouteBuilder
+import by.anegin.vkcup21.features.taxi.tools.impl.dummy.DummyOrderManager
+import by.anegin.vkcup21.features.taxi.tools.impl.gms.GmsLocationProvider
+import by.anegin.vkcup21.features.taxi.tools.impl.mapbox.MapboxGeoCoder
+import by.anegin.vkcup21.features.taxi.tools.impl.mapbox.MapboxRouteBuilder
 import by.anegin.vkcup21.features.taxi.ui.TaxiOrderingViewModel
 import dagger.Binds
 import dagger.Module
@@ -20,7 +24,13 @@ interface TaxiFeatureModule {
     fun bindLocationProvider(impl: GmsLocationProvider): LocationProvider
 
     @Binds
-    fun bindGeoCodingSource(impl: MapBoxGeoCoder): GeoCoder
+    fun bindGeoCoder(impl: MapboxGeoCoder): GeoCoder
+
+    @Binds
+    fun bindRouteBuilder(impl: MapboxRouteBuilder): RouteBuilder
+
+    @Binds
+    fun bindOrderManager(impl: DummyOrderManager): OrderManager
 
     @Binds
     fun bindViewModelFactory(factory: ViewModelFactory): ViewModelProvider.Factory
