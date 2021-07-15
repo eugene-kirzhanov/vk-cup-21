@@ -51,11 +51,17 @@ dependencies {
     implementation(Deps.PlayServices.location)
 
     implementation(Deps.MapBox.sdk)
+    implementation(Deps.MapBox.services)
     implementation(Deps.MapBox.localizationPlugin)
+
+    implementation("com.squareup.okhttp3:okhttp:3.14.9")
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
 }
 
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
     kotlinOptions.freeCompilerArgs += listOf(
         "-Xuse-experimental=kotlinx.coroutines.ExperimentalCoroutinesApi",
+        "-Xuse-experimental=kotlinx.coroutines.FlowPreview"
     )
 }

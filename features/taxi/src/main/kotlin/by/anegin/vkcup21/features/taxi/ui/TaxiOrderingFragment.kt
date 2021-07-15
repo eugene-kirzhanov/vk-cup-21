@@ -198,6 +198,10 @@ class TaxiOrderingFragment : Fragment(R.layout.fragment_taxi_ordering) {
                 binding.buttonMyLocation.hide()
             }
         }
+
+        viewModel.geoCodeResult.observe(viewLifecycleOwner) { result ->
+            binding.bottomSheetAddressess.editSourceAddress.setText(result.address)
+        }
     }
 
     override fun onSaveInstanceState(outState: Bundle) {

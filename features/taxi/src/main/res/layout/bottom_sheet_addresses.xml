@@ -81,6 +81,7 @@
                 app:layout_constraintVertical_chainStyle="packed">
 
                 <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/edit_source_address"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:hint="@string/address.source_hint"
@@ -108,13 +109,13 @@
                 android:layout_marginTop="12dp"
                 android:layout_marginEnd="16dp"
                 android:layout_marginBottom="16dp"
-
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toEndOf="@id/image_source_address"
                 app:layout_constraintTop_toBottomOf="@id/input_source_address">
 
                 <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/edit_destination_address"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:hint="@string/address.destination_hint"

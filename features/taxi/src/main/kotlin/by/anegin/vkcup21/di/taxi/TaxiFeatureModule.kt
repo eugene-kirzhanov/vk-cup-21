@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import by.anegin.vkcup21.di.ViewModelFactory
 import by.anegin.vkcup21.di.ViewModelKey
+import by.anegin.vkcup21.features.taxi.geo.GeoCodingSource
+import by.anegin.vkcup21.features.taxi.geo.MapBoxGeoCodingSource
 import by.anegin.vkcup21.features.taxi.location.GmsLocationProvider
 import by.anegin.vkcup21.features.taxi.location.LocationProvider
 import by.anegin.vkcup21.features.taxi.ui.TaxiOrderingViewModel
@@ -16,6 +18,9 @@ interface TaxiFeatureModule {
 
     @Binds
     fun bindLocationProvider(impl: GmsLocationProvider): LocationProvider
+
+    @Binds
+    fun bindGeoCodingSource(impl: MapBoxGeoCodingSource): GeoCodingSource
 
     @Binds
     fun bindViewModelFactory(factory: ViewModelFactory): ViewModelProvider.Factory
