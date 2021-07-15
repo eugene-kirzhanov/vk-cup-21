@@ -100,7 +100,11 @@ class TaxiOrderingViewModel @Inject constructor(
                         )
                         when (result.query.addressType) {
                             Address.Type.SOURCE -> _sourceAddress.emit(address)
-                            Address.Type.DESTINATION -> _destinationAddress.emit(address)
+                            Address.Type.DESTINATION -> {
+                                if (result.query.source != Address.Source.MY_LOCATION) {
+                                    _destinationAddress.emit(address)
+                                }
+                            }
                         }
                     }
                 }
