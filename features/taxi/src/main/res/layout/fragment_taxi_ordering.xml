@@ -9,6 +9,7 @@
         android:id="@+id/mapView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        app:mapbox_accuracyAlpha="0.1"
         app:mapbox_cameraTargetLat="59.935840"
         app:mapbox_cameraTargetLng="30.325875"
         app:mapbox_cameraZoom="9.0"

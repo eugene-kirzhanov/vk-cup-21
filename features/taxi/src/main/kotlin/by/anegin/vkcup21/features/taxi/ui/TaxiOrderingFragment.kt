@@ -10,10 +10,11 @@ import android.view.ViewGroup
 import android.view.WindowManager
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.content.res.AppCompatResources
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.postDelayed
+import androidx.core.view.isVisible
 import androidx.core.view.updateLayoutParams
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -21,8 +22,11 @@ import androidx.lifecycle.ViewModelProvider
 import by.anegin.vkcup21.core.nav.AppNavigator
 import by.anegin.vkcup21.core.nav.AppUiController
 import by.anegin.vkcup21.core.nav.SystemBar
+import by.anegin.vkcup21.core.util.dp
+import by.anegin.vkcup21.core.util.hideKeyboard
 import by.anegin.vkcup21.core.util.isDestroyed
 import by.anegin.vkcup21.core.util.observe
+import by.anegin.vkcup21.core.util.showKeyboard
 import by.anegin.vkcup21.di.taxi.DaggerTaxiComponent
 import by.anegin.vkcup21.di.taxi.TaxiModuleDependencies
 import by.anegin.vkcup21.taxi.R
@@ -40,7 +44,12 @@ import com.mapbox.mapboxsdk.location.modes.CameraMode
 import com.mapbox.mapboxsdk.location.modes.RenderMode
 import com.mapbox.mapboxsdk.maps.MapboxMap
 import com.mapbox.mapboxsdk.maps.Style
+import com.mapbox.mapboxsdk.plugins.annotation.OnSymbolDragListener
+import com.mapbox.mapboxsdk.plugins.annotation.Symbol
+import com.mapbox.mapboxsdk.plugins.annotation.SymbolManager
+import com.mapbox.mapboxsdk.plugins.annotation.SymbolOptions
 import com.mapbox.mapboxsdk.plugins.localization.LocalizationPlugin
+import com.mapbox.mapboxsdk.style.layers.Property.ICON_ROTATION_ALIGNMENT_VIEWPORT
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
@@ -50,6 +59,8 @@ class TaxiOrderingFragment : Fragment(R.layout.fragment_taxi_ordering) {
 
     companion object {
         private const val DEFAULT_ZOOM = 15.0
+
+        private const val IMAGE_ID_ADDRESS_PIN = "address_pin"
     }
 
     @Inject
@@ -66,8 +77,12 @@ class TaxiOrderingFragment : Fragment(R.layout.fragment_taxi_ordering) {
     private val binding by viewBinding(FragmentTaxiOrderingBinding::class.java)
 
     private var map: MapboxMap? = null
+    private var symbolManager: SymbolManager? = null
 
     private var systemBarInsets = 0 to 0 // top, bottom
+
+    private var addressMarker: Symbol? = null
+    private var isAddressMarkerDragged = false
 
     private val isPermissionGranted = MutableStateFlow(false)
     private val isMyLocationOnScreen = MutableStateFlow(false)
@@ -92,7 +107,7 @@ class TaxiOrderingFragment : Fragment(R.layout.fragment_taxi_ordering) {
     @SuppressLint("ClickableViewAccessibility")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         activity?.window?.addFlags(WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS)
-        appUiController.setupSystemBars(statusBar = SystemBar.Transparent, navigationBar = SystemBar.Transparent)
+        appUiController.setupSystemBars(statusBar = SystemBar.Transparent, navigationBar = SystemBar.Default)
 
         view.setOnApplyWindowInsetsListener { _, insets ->
             val systemBars = WindowInsetsCompat.toWindowInsetsCompat(insets)
@@ -111,12 +126,6 @@ class TaxiOrderingFragment : Fragment(R.layout.fragment_taxi_ordering) {
 
         val bottomSheetLayoutParams = binding.bottomSheetAddressess.root.layoutParams as? CoordinatorLayout.LayoutParams
         bottomSheetBehavior = bottomSheetLayoutParams?.behavior as? BottomSheetBehavior<*>
-        bottomSheetBehavior?.state = BottomSheetBehavior.STATE_HIDDEN
-        view.postDelayed(1200) {
-            bottomSheetBehavior?.state = BottomSheetBehavior.STATE_COLLAPSED
-            bottomSheetBehavior?.isHideable = false
-        }
-
         bottomSheetBehavior?.addBottomSheetCallback(object : BottomSheetBehavior.BottomSheetCallback() {
             override fun onSlide(bottomSheet: View, slideOffset: Float) {
                 val treshold = 0.5f
@@ -151,10 +160,45 @@ class TaxiOrderingFragment : Fragment(R.layout.fragment_taxi_ordering) {
                 updateMapLogoAndAttributionPosition()
             }
 
-            override fun onStateChanged(bottomSheet: View, newState: Int) {}
+            override fun onStateChanged(bottomSheet: View, newState: Int) {
+                if (newState == BottomSheetBehavior.STATE_COLLAPSED) {
+                    viewModel.currentAddressMode = AddressMode.GEOCODING
+                    setInputAllowed(false)
+                } else if (newState == BottomSheetBehavior.STATE_EXPANDED) {
+                    viewModel.currentAddressMode = AddressMode.SEARCH
+                    setInputAllowed(true)
+                }
+            }
         })
 
+        binding.bottomSheetAddressess.editSourceAddress.setOnFocusChangeListener { _, hasFocus ->
+            if (hasFocus) {
+                viewModel.selectAddressType(Address.Type.SOURCE)
+            }
+        }
+        binding.bottomSheetAddressess.editDestinationAddress.setOnFocusChangeListener { _, hasFocus ->
+            if (hasFocus) {
+                viewModel.selectAddressType(Address.Type.DESTINATION)
+            }
+        }
+
+        binding.bottomSheetAddressess.sourceAddressOverlay.setOnClickListener {
+            if (viewModel.currentAddressType.value != Address.Type.SOURCE) {
+                viewModel.selectAddressType(Address.Type.SOURCE)
+            } else {
+                bottomSheetBehavior?.state = BottomSheetBehavior.STATE_EXPANDED
+            }
+        }
+        binding.bottomSheetAddressess.destinationAddressOverlay.setOnClickListener {
+            if (viewModel.currentAddressType.value != Address.Type.DESTINATION) {
+                viewModel.selectAddressType(Address.Type.DESTINATION)
+            } else {
+                bottomSheetBehavior?.state = BottomSheetBehavior.STATE_EXPANDED
+            }
+        }
+
         binding.bottomSheetAddressess.buttonCloseAddresses.setOnClickListener {
+            setInputAllowed(false)
             bottomSheetBehavior?.state = BottomSheetBehavior.STATE_COLLAPSED
         }
 
@@ -163,6 +207,7 @@ class TaxiOrderingFragment : Fragment(R.layout.fragment_taxi_ordering) {
             object : OnBackPressedCallback(true) {
                 override fun handleOnBackPressed() {
                     if (bottomSheetBehavior?.state == BottomSheetBehavior.STATE_EXPANDED) {
+                        setInputAllowed(false)
                         bottomSheetBehavior?.state = BottomSheetBehavior.STATE_COLLAPSED
                     } else {
                         appNavigator.navigateUp()
@@ -199,8 +244,35 @@ class TaxiOrderingFragment : Fragment(R.layout.fragment_taxi_ordering) {
             }
         }
 
-        viewModel.geoCodeResult.observe(viewLifecycleOwner) { result ->
-            binding.bottomSheetAddressess.editSourceAddress.setText(result.address)
+        viewModel.currentAddressType.observe(viewLifecycleOwner) { addressType ->
+            val (sourceStrokeWidth, destStrokeWidth) = when (addressType) {
+                Address.Type.SOURCE -> 2f.dp.toInt() to 0.5f.dp.toInt()
+                Address.Type.DESTINATION -> 0.5f.dp.toInt() to 2f.dp.toInt()
+            }
+            binding.bottomSheetAddressess.inputSourceAddress.apply {
+                boxStrokeWidth = sourceStrokeWidth
+                boxStrokeWidthFocused = sourceStrokeWidth
+            }
+            binding.bottomSheetAddressess.inputDestinationAddress.apply {
+                boxStrokeWidth = destStrokeWidth
+                boxStrokeWidthFocused = destStrokeWidth
+            }
+        }
+        viewModel.sourceAddress.observe(viewLifecycleOwner) { address ->
+            binding.bottomSheetAddressess.editSourceAddress.apply {
+                setText(address.title)
+                setSelection(address.title.length)
+            }
+        }
+        viewModel.destinationAddress.observe(viewLifecycleOwner) { address ->
+            binding.bottomSheetAddressess.editDestinationAddress.apply {
+                setText(address.title)
+                setSelection(address.title.length)
+            }
+        }
+
+        viewModel.myLocation.observe(viewLifecycleOwner) { myLocation ->
+            maybeUpdateAddressMarkerByMyLocation(myLocation.latitude, myLocation.longitude)
         }
     }
 
@@ -221,18 +293,18 @@ class TaxiOrderingFragment : Fragment(R.layout.fragment_taxi_ordering) {
     }
 
     override fun onPause() {
-        super.onPause()
         binding.mapView.onPause()
+        super.onPause()
     }
 
     override fun onStop() {
-        super.onStop()
         binding.mapView.onStop()
+        super.onStop()
     }
 
     override fun onLowMemory() {
-        super.onLowMemory()
         binding.mapView.onLowMemory()
+        super.onLowMemory()
     }
 
     override fun onDestroyView() {
@@ -286,7 +358,14 @@ class TaxiOrderingFragment : Fragment(R.layout.fragment_taxi_ordering) {
         map.uiSettings.isCompassEnabled = false
         map.uiSettings.isTiltGesturesEnabled = false
 
-        map.setStyle(Style.MAPBOX_STREETS) { loadedStyle ->
+        val addressMarkerDrawable = AppCompatResources.getDrawable(requireContext(), R.drawable.ic_address_pin)
+            ?: throw RuntimeException("Invalid address marker drawable")
+
+        val mapStyle = Style.Builder()
+            .fromUri(Style.MAPBOX_STREETS)
+            .withImage(IMAGE_ID_ADDRESS_PIN, addressMarkerDrawable)
+
+        map.setStyle(mapStyle) { loadedStyle ->
 
             val locationComponentOptions = LocationComponentOptions.builder(requireContext())
                 .trackingGesturesManagement(true)
@@ -307,6 +386,23 @@ class TaxiOrderingFragment : Fragment(R.layout.fragment_taxi_ordering) {
             localizationPlugin.matchMapLanguageWithDeviceDefault()
 
             updateMyLocationState(isPermissionGranted.value)
+
+            symbolManager = SymbolManager(binding.mapView, map, loadedStyle).apply {
+                iconRotationAlignment = ICON_ROTATION_ALIGNMENT_VIEWPORT
+                iconAllowOverlap = true
+                textAllowOverlap = true
+                addDragListener(object : OnSymbolDragListener {
+                    override fun onAnnotationDragStarted(annotation: Symbol) {
+                        isAddressMarkerDragged = true
+                    }
+
+                    override fun onAnnotationDrag(annotation: Symbol?) {}
+
+                    override fun onAnnotationDragFinished(annotation: Symbol) {
+                        viewModel.onMarkerDragged(annotation.latLng.latitude, annotation.latLng.longitude, Address.Source.USER_SPECIFIED)
+                    }
+                })
+            }
         }
     }
 
@@ -366,6 +462,48 @@ class TaxiOrderingFragment : Fragment(R.layout.fragment_taxi_ordering) {
             if (bottomMargin < systemBarInsets.second) bottomMargin = (systemBarInsets.second + defaultLogoMargin).toInt()
             setLogoMargins(logoMarginLeft, logoMarginTop, logoMarginRight, bottomMargin)
             setAttributionMargins(attributionMarginLeft, attributionMarginTop, attributionMarginRight, bottomMargin)
+        }
+    }
+
+    private fun maybeUpdateAddressMarkerByMyLocation(latitude: Double, longitude: Double) {
+        if (map == null || isAddressMarkerDragged) return
+
+        val latLng = LatLng(latitude, longitude)
+
+        this.addressMarker
+            ?.apply {
+                this.latLng = latLng
+                symbolManager?.update(this)
+            }
+            ?: symbolManager?.create(
+                SymbolOptions()
+                    .withLatLng(latLng)
+                    .withIconImage(IMAGE_ID_ADDRESS_PIN)
+                    .withIconOffset(arrayOf(0f, -48f))
+                    .withDraggable(true)
+            ).also {
+                this.addressMarker = it
+            }
+
+        viewModel.onMarkerDragged(latLng.latitude, latLng.longitude, Address.Source.MY_LOCATION)
+    }
+
+    private fun setInputAllowed(inputAllowed: Boolean) {
+        binding.bottomSheetAddressess.apply {
+            editSourceAddress.isEnabled = inputAllowed
+            editDestinationAddress.isEnabled = inputAllowed
+            sourceAddressOverlay.isVisible = !inputAllowed
+            destinationAddressOverlay.isVisible = !inputAllowed
+        }
+        if (inputAllowed) {
+            when (viewModel.currentAddressType.value) {
+                Address.Type.SOURCE -> binding.bottomSheetAddressess.editSourceAddress.requestFocus()
+                Address.Type.DESTINATION -> binding.bottomSheetAddressess.editDestinationAddress.requestFocus()
+            }
+            showKeyboard()
+        } else {
+            activity?.currentFocus?.clearFocus()
+            hideKeyboard()
         }
     }
 

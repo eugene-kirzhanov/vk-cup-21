@@ -75,14 +75,25 @@ object Deps {
         const val location = "com.google.android.gms:play-services-location:18.0.0"
     }
 
-    const val timber = "com.jakewharton.timber:timber:4.7.1"
+    object OkHttp3 {
+        const val okhttp = "com.squareup.okhttp3:okhttp:3.14.9"
+    }
 
-    const val viewBindingPropertyDelegate = "com.github.kirich1409:viewbindingpropertydelegate:1.4.6"
+    object Retrofit2 {
+        private const val version = "2.9.0"
+        const val retrofit = "com.squareup.retrofit2:retrofit:$version"
+        const val gsonConverter = "com.squareup.retrofit2:converter-gson:$version"
+    }
 
     object MapBox {
         const val sdk = "com.mapbox.mapboxsdk:mapbox-android-sdk:9.6.2"
         const val services = "com.mapbox.mapboxsdk:mapbox-sdk-services:5.5.0"
+        const val annotationPlugnin = "com.mapbox.mapboxsdk:mapbox-android-plugin-annotation-v9:0.9.0"
         const val localizationPlugin = "com.mapbox.mapboxsdk:mapbox-android-plugin-localization-v9:0.12.0"
     }
+
+    const val timber = "com.jakewharton.timber:timber:4.7.1"
+
+    const val viewBindingPropertyDelegate = "com.github.kirich1409:viewbindingpropertydelegate:1.4.6"
 
 }

@@ -8,9 +8,9 @@
         <item name="android:layout_height">44dp</item>
         <item name="shapeAppearance">@style/ShapeAppearance.Taxi.SmallComponent</item>
         <item name="hintEnabled">false</item>
-        <item name="boxStrokeColor">@color/input_stroke_color</item>
+        <item name="boxStrokeColor">@color/input_box_stroke</item>
         <item name="boxStrokeWidth">0.5dp</item>
-        <item name="boxStrokeWidthFocused">1dp</item>
+        <item name="boxStrokeWidthFocused">0.5dp</item>
     </style>
 
     <style name="ShapeAppearance.Taxi.SmallComponent" parent="ShapeAppearance.MaterialComponents.SmallComponent">

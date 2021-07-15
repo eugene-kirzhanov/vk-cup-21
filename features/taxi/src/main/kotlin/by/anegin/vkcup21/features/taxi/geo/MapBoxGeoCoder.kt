@@ -18,10 +18,10 @@ import javax.inject.Inject
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
-class MapBoxGeoCodingSource @Inject constructor(
+class MapBoxGeoCoder @Inject constructor(
     private val context: Context,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher
-) : GeoCodingSource {
+) : GeoCoder {
 
     override suspend fun reverseGeoCode(latitude: Double, longitude: Double): String? = withContext(ioDispatcher) {
         val client = MapboxGeocoding.builder()
@@ -31,7 +31,21 @@ class MapBoxGeoCodingSource @Inject constructor(
             .mode(GeocodingCriteria.MODE_PLACES)
             .build()
         val response = client.call()
-        response.features().firstOrNull()?.text()
+        response.features().firstOrNull()?.let {
+            val text = it.text().orEmpty()
+            val address = it.address().orEmpty()
+            val placeName = it.placeName().orEmpty()
+            when {
+                text.isNotEmpty() -> buildString {
+                    append(text)
+                    if (address.isNotEmpty()) {
+                        append(", ").append(address)
+                    }
+                }
+                placeName.isNotEmpty() -> placeName
+                else -> null
+            }
+        }
     }
 
     private suspend fun MapboxGeocoding.call() = suspendCancellableCoroutine<GeocodingResponse> { continuation ->

@@ -1,4 +1,4 @@
 <resources>
-    <string name="app_name">VkCup</string>
-    <string name="feature_title_taxi" translatable="false">Taxi</string>
+    <string name="app_name" translatable="false">VkCup</string>
+    <string name="feature_title_taxi">Taxi</string>
 </resources>

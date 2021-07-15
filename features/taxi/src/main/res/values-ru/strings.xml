@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="system.location_permission_rationale_title">Доступ к местоположению</string>
+    <string name="system.location_permission_rationale_message">Разрешите доступ к местоположению, чтобы мы могли найти вас на карте</string>
+    <string name="common.continue">Продолжить</string>
+
+    <string name="address.source_hint">Откуда поедем?</string>
+    <string name="address.destination_hint">Куда поедем?</string>
+</resources>
