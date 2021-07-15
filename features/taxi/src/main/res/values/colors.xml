@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="my_location_marker_accuracy">#1A735CE6</color>
-    <color name="my_location_marker_foreground_color">#735CE6</color>
+    <color name="my_location_marker_foreground_color">#55735CE6</color>
 
     <color name="route_line">#725BE3</color>
 

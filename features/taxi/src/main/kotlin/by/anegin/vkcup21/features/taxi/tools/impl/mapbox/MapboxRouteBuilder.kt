@@ -9,6 +9,8 @@ import by.anegin.vkcup21.taxi.R
 import com.mapbox.api.directions.v5.DirectionsCriteria
 import com.mapbox.api.directions.v5.MapboxDirections
 import com.mapbox.geojson.Point
+import com.mapbox.turf.TurfConstants
+import com.mapbox.turf.TurfMeasurement
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
 import timber.log.Timber
@@ -19,26 +21,33 @@ class MapboxRouteBuilder @Inject constructor(
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher
 ) : RouteBuilder {
 
-    override suspend fun buildRoute(sourceAddress: Address, destinationAddress: Address): Route? = withContext(ioDispatcher) {
+    companion object {
+        private const val MINIMUM_VALID_ROUTE_DISTANCE = 100 // in meters
+    }
+
+    override suspend fun buildRoute(sourceAddress: Address?, destinationAddress: Address?): Route? = withContext(ioDispatcher) {
+        if (sourceAddress == null || destinationAddress == null) return@withContext null
         val sourcePoint = Point.fromLngLat(sourceAddress.longitude, sourceAddress.latitude)
         val destPoint = Point.fromLngLat(destinationAddress.longitude, destinationAddress.latitude)
+
+        val distance = TurfMeasurement.distance(sourcePoint, destPoint, TurfConstants.UNIT_METERS)
+        if (distance < MINIMUM_VALID_ROUTE_DISTANCE) return@withContext null
 
         try {
             val client = MapboxDirections.builder()
                 .origin(sourcePoint)
                 .destination(destPoint)
                 .overview(DirectionsCriteria.OVERVIEW_FULL)
+                .alternatives(true)
                 .profile(DirectionsCriteria.PROFILE_DRIVING)
                 .accessToken(context.getString(R.string.mapbox_access_token))
                 .build()
             val response = MapboxUtil.makeCall(client::enqueueCall, client::cancelCall)
-            response.routes().firstOrNull()?.let { route ->
+
+            response.routes().firstOrNull()?.let {
                 Route(
-                    source = sourceAddress,
                     destination = destinationAddress,
-                    distance = route.distance(),
-                    duration = route.duration(),
-                    direstions = route
+                    direction = it
                 )
             }
         } catch (t: Throwable) {

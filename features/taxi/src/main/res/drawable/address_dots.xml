@@ -4,30 +4,30 @@
     <item
         android:width="2dp"
         android:height="2dp"
-        android:drawable="@drawable/dot" />
+        android:drawable="@drawable/address_dot" />
 
     <item
         android:width="2dp"
         android:height="2dp"
-        android:drawable="@drawable/dot"
+        android:drawable="@drawable/address_dot"
         android:top="6dp" />
 
     <item
         android:width="2dp"
         android:height="2dp"
-        android:drawable="@drawable/dot"
+        android:drawable="@drawable/address_dot"
         android:top="12dp" />
 
     <item
         android:width="2dp"
         android:height="2dp"
-        android:drawable="@drawable/dot"
+        android:drawable="@drawable/address_dot"
         android:top="18dp" />
 
     <item
         android:width="2dp"
         android:height="2dp"
-        android:drawable="@drawable/dot"
+        android:drawable="@drawable/address_dot"
         android:top="24dp" />
 
 </layer-list>

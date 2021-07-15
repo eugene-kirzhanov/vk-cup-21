@@ -5,6 +5,6 @@ import by.anegin.vkcup21.features.taxi.models.Route
 
 interface RouteBuilder {
 
-    suspend fun buildRoute(sourceAddress: Address, destinationAddress: Address): Route?
+    suspend fun buildRoute(sourceAddress: Address?, destinationAddress: Address?): Route?
 
 }

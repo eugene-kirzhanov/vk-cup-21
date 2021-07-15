@@ -5,6 +5,6 @@ import by.anegin.vkcup21.features.taxi.models.RouteDetails
 
 interface OrderManager {
 
-    suspend fun calculateRouteDetails(route: Route): RouteDetails?
+    suspend fun calculateRouteDetails(route: Route): RouteDetails
 
 }

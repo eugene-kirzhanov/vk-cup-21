@@ -2,21 +2,27 @@ package by.anegin.vkcup21.features.taxi.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import by.anegin.vkcup21.core.resources.ResourceProvider
 import by.anegin.vkcup21.features.taxi.models.Address
 import by.anegin.vkcup21.features.taxi.models.AddressMode
 import by.anegin.vkcup21.features.taxi.models.GeoCodeQuery
 import by.anegin.vkcup21.features.taxi.models.GeoCodeResult
+import by.anegin.vkcup21.features.taxi.models.InfoWindowData
+import by.anegin.vkcup21.features.taxi.models.RouteDetails
 import by.anegin.vkcup21.features.taxi.tools.GeoCoder
 import by.anegin.vkcup21.features.taxi.tools.LocationProvider
+import by.anegin.vkcup21.features.taxi.tools.OrderManager
 import by.anegin.vkcup21.features.taxi.tools.RouteBuilder
+import by.anegin.vkcup21.taxi.R
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.map
@@ -27,38 +33,56 @@ import javax.inject.Inject
 
 class TaxiOrderingViewModel @Inject constructor(
     locationProvider: LocationProvider,
+    private val resourceProvider: ResourceProvider,
     private val geoCoder: GeoCoder,
-    private val routeBuilder: RouteBuilder
+    private val routeBuilder: RouteBuilder,
+    private val orderManager: OrderManager,
+    private val infoWindowGenerator: InfoWindowGenerator
 ) : ViewModel() {
 
     val myLocation = locationProvider.location
 
-    private val geocodeQuery = MutableSharedFlow<GeoCodeQuery>()
+    private val geocodeQuery = MutableSharedFlow<GeoCodeQuery>(
+        replay = 0,
+        extraBufferCapacity = 1000,
+        onBufferOverflow = BufferOverflow.SUSPEND
+    )
     private val geoCodeResult = geocodeQuery
-        .debounce(300)
-        .map { query ->
-            geocode(query)
-        }
+        .map { geocode(it) }
 
     var currentAddressMode = AddressMode.GEOCODING
-
-    private val _currentAddressType = MutableStateFlow(Address.Type.DESTINATION)
-    val currentAddressType = _currentAddressType.asStateFlow()
 
     private val _sourceAddress = MutableStateFlow<Address?>(null)
     val sourceAddress = _sourceAddress
         .asStateFlow()
         .filterNotNull()
         .filter { currentAddressMode == AddressMode.GEOCODING }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     private val _destinationAddress = MutableStateFlow<Address?>(null)
     val destinationAddress = _destinationAddress
         .asStateFlow()
         .filterNotNull()
         .filter { currentAddressMode == AddressMode.GEOCODING }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     val route = combine(sourceAddress, destinationAddress, routeBuilder::buildRoute)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    private val infoWindowData = route
+        .map { route ->
+            route?.let { orderManager.calculateRouteDetails(it) }
+        }
+        .map { routeDetails ->
+            routeDetails?.let { makeInfoWindowData(it) }
+        }
+
+    val infoWindowBitmap = infoWindowData
+        .map { data ->
+            data?.let {
+                data to infoWindowGenerator.generate(data.text)
+            }
+        }
 
     private var locationPermissionRequested = false
 
@@ -92,27 +116,23 @@ class TaxiOrderingViewModel @Inject constructor(
         locationPermissionRequested = true
     }
 
-    fun selectAddressType(type: Address.Type) {
-        _currentAddressType.value = type
-    }
-
-    fun onMarkerDragged(latitude: Double, longitude: Double, source: Address.Source) {
+    fun onMarkerDragged(latitude: Double, longitude: Double, source: Address.Source, type: Address.Type) {
 
         // skip geocoding if we receive coordinates from location provider but user has already selected address manually
         if (source == Address.Source.MY_LOCATION) {
-            when (_currentAddressType.value) {
+            when (type) {
                 Address.Type.SOURCE -> if (_sourceAddress.value?.source == Address.Source.USER_SPECIFIED) return
                 Address.Type.DESTINATION -> if (_destinationAddress.value?.source == Address.Source.USER_SPECIFIED) return
             }
         }
 
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.Default) {
             geocodeQuery.emit(
                 GeoCodeQuery.AddressByLocation(
                     source = source,
                     latitude = latitude,
                     longitude = longitude,
-                    addressType = _currentAddressType.value
+                    addressType = type
                 )
             )
         }
@@ -132,6 +152,16 @@ class TaxiOrderingViewModel @Inject constructor(
                 GeoCodeResult.AddressByLocation(query, address)
             }
         }
+    }
+
+    private fun makeInfoWindowData(routeDetails: RouteDetails): InfoWindowData {
+        val durationString = resourceProvider.getString(R.string.trip_duration, routeDetails.bestVariant.duration)
+        val costString = resourceProvider.getString(R.string.trip_cost, routeDetails.bestVariant.cost)
+        return InfoWindowData(
+            latitude = routeDetails.destination.latitude,
+            longitude = routeDetails.destination.longitude,
+            text = "$durationString\n$costString"
+        )
     }
 
 }

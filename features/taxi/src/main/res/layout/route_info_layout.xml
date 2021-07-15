@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:background="@drawable/tooltip"
+    android:orientation="vertical"
+    android:paddingStart="42dp"
+    android:paddingTop="36dp"
+    android:paddingEnd="42dp"
+    android:paddingBottom="50dp">
+
+    <TextView
+        android:id="@+id/text_info"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:ellipsize="end"
+        android:maxLines="2"
+        android:textColor="#2C2D2E"
+        android:textSize="14sp"
+        tools:text="Время в пути 16 мин\nЦена поездки 250 р." />
+
+</FrameLayout>
