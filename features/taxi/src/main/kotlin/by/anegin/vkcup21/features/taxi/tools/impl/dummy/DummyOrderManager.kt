@@ -16,7 +16,8 @@ class DummyOrderManager @Inject constructor(
 
     override suspend fun calculateRouteDetails(route: Route) = withContext(defaultDispatcher) {
         RouteDetails(
-            destination = route.destination,
+            latitude = route.latitude,
+            longitude = route.longitude,
             direction = route.direction,
             variants = calculateVariants(route.direction)
         )

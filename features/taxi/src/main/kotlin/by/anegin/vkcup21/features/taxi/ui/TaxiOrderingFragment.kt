@@ -453,6 +453,10 @@ class TaxiOrderingFragment : Fragment(R.layout.fragment_taxi_ordering) {
                         }
                         addressType?.let {
                             viewModel.onMarkerDragged(annotation.latLng.latitude, annotation.latLng.longitude, Address.Source.USER_SPECIFIED, it)
+
+                            if (addressType == Address.Type.SOURCE && !isDestinationAddressMarkerDragged && viewModel.destinationAddress.value == null) {
+                                viewModel.setDestinationAddressVisible()
+                            }
                         }
                     }
                 })

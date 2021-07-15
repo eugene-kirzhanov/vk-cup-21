@@ -14,6 +14,7 @@ import by.anegin.vkcup21.features.taxi.tools.LocationProvider
 import by.anegin.vkcup21.features.taxi.tools.OrderManager
 import by.anegin.vkcup21.features.taxi.tools.RouteBuilder
 import by.anegin.vkcup21.taxi.R
+import com.mapbox.mapboxsdk.geometry.LatLng
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.BufferOverflow
@@ -52,6 +53,7 @@ class TaxiOrderingViewModel @Inject constructor(
 
     var currentAddressMode = AddressMode.GEOCODING
 
+    private val sourceLatLng = MutableStateFlow<LatLng?>(null)
     private val _sourceAddress = MutableStateFlow<Address?>(null)
     val sourceAddress = _sourceAddress
         .asStateFlow()
@@ -59,6 +61,7 @@ class TaxiOrderingViewModel @Inject constructor(
         .filter { currentAddressMode == AddressMode.GEOCODING }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
+    private val destinationLatLng = MutableStateFlow<LatLng?>(null)
     private val _destinationAddress = MutableStateFlow<Address?>(null)
     val destinationAddress = _destinationAddress
         .asStateFlow()
@@ -66,7 +69,7 @@ class TaxiOrderingViewModel @Inject constructor(
         .filter { currentAddressMode == AddressMode.GEOCODING }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
-    val route = combine(sourceAddress, destinationAddress, routeBuilder::buildRoute)
+    val route = combine(sourceLatLng, destinationLatLng, routeBuilder::buildRoute)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     private val infoWindowData = route
@@ -99,8 +102,12 @@ class TaxiOrderingViewModel @Inject constructor(
                             title = result.address ?: "${result.query.latitude}, ${result.query.longitude}"
                         )
                         when (result.query.addressType) {
-                            Address.Type.SOURCE -> _sourceAddress.emit(address)
+                            Address.Type.SOURCE -> {
+                                sourceLatLng.emit(LatLng(address.latitude, address.longitude))
+                                _sourceAddress.emit(address)
+                            }
                             Address.Type.DESTINATION -> {
+                                destinationLatLng.emit(LatLng(address.latitude, address.longitude))
                                 if (result.query.source != Address.Source.MY_LOCATION) {
                                     _destinationAddress.emit(address)
                                 }
@@ -142,6 +149,12 @@ class TaxiOrderingViewModel @Inject constructor(
         }
     }
 
+    fun setDestinationAddressVisible() {
+        destinationLatLng.value?.let {
+            onMarkerDragged(it.latitude, it.longitude, Address.Source.USER_SPECIFIED, Address.Type.DESTINATION)
+        }
+    }
+
     private suspend fun geocode(query: GeoCodeQuery): GeoCodeResult {
         return when (query) {
             is GeoCodeQuery.AddressByLocation -> {
@@ -162,8 +175,8 @@ class TaxiOrderingViewModel @Inject constructor(
         val durationString = resourceProvider.getString(R.string.trip_duration, routeDetails.bestVariant.duration)
         val costString = resourceProvider.getString(R.string.trip_cost, routeDetails.bestVariant.cost)
         return InfoWindowData(
-            latitude = routeDetails.destination.latitude,
-            longitude = routeDetails.destination.longitude,
+            latitude = routeDetails.latitude,
+            longitude = routeDetails.longitude,
             text = "$durationString\n$costString"
         )
     }
