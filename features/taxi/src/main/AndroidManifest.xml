@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:dist="http://schemas.android.com/apk/distribution"
+    xmlns:tools="http://schemas.android.com/tools"
     package="by.anegin.vkcup21.taxi">
 
     <dist:module
@@ -15,5 +16,11 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+
+    <application tools:ignore="AllowBackup">
+        <activity
+            android:name="com.google.android.libraries.places.widget.AutocompleteActivity"
+            tools:node="remove" />
+    </application>
 
 </manifest>

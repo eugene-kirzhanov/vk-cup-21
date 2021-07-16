@@ -2,7 +2,7 @@ package by.anegin.vkcup21.features.taxi.models
 
 import com.mapbox.api.directions.v5.models.DirectionsRoute
 
-class RouteDetails(
+data class RouteDetails(
     val latitude: Double,
     val longitude: Double,
     val direction: DirectionsRoute,
@@ -16,7 +16,7 @@ class RouteDetails(
             ?: variants.first()
     }
 
-    class Variant(
+    data class Variant(
         val category: Category,
         val cost: Int, // in rubles
         val duration: Int // in minutes

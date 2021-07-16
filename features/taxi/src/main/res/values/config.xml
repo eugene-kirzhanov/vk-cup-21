@@ -4,4 +4,7 @@
     <!-- MapBox Public Token -->
     <string name="mapbox_access_token" translatable="false">pk.eyJ1IjoiYW5lZ2luIiwiYSI6ImNrcjMwc2h4aDJncWsycW82am43eHUxczEifQ.sNoz-i390TQnEGStquFkAw</string>
 
+    <!-- Google API key for Places API -->
+    <string name="google_api_key">AIzaSyCJ-B5GW4AxELAxHMUcUAfL4OoBNNv63Nc</string>
+
 </resources>

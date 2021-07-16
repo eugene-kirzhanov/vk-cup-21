@@ -2,9 +2,14 @@ package by.anegin.vkcup21.features.taxi.models
 
 sealed class GeoCodeResult {
 
-    class AddressByLocation(
+    data class AddressByLocation(
         val query: GeoCodeQuery.AddressByLocation,
-        val address: String?
+        val addressTitle: String?
+    ) : GeoCodeResult()
+
+    data class AddressByPlace(
+        val query: GeoCodeQuery.AddressByPlace,
+        val addressTitle: String?
     ) : GeoCodeResult()
 
 }

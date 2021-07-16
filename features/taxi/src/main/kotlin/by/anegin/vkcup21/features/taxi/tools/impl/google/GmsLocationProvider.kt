@@ -1,4 +1,4 @@
-package by.anegin.vkcup21.features.taxi.tools.impl.gms
+package by.anegin.vkcup21.features.taxi.tools.impl.google
 
 import android.content.Context
 import android.location.Location

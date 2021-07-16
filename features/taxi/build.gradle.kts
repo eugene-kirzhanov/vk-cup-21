@@ -65,6 +65,10 @@ dependencies {
     }
     implementation(Deps.MapBox.annotationPlugin)
     implementation(Deps.MapBox.localizationPlugin)
+
+    implementation(Deps.GoogleLibs.places)
+    // Use explicit version of Volley library which is not migrated out of Jcenter until Places library is updated
+    implementation("com.android.volley:volley:1.2.0")
 }
 
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {

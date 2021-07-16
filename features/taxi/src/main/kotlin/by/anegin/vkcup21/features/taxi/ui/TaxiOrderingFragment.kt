@@ -20,9 +20,11 @@ import androidx.core.view.updateLayoutParams
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.ViewModelProvider
+import androidx.recyclerview.widget.LinearLayoutManager
 import by.anegin.vkcup21.core.nav.AppNavigator
 import by.anegin.vkcup21.core.nav.AppUiController
 import by.anegin.vkcup21.core.nav.SystemBar
+import by.anegin.vkcup21.core.util.dp
 import by.anegin.vkcup21.core.util.hideKeyboard
 import by.anegin.vkcup21.core.util.isDestroyed
 import by.anegin.vkcup21.core.util.observe
@@ -30,8 +32,8 @@ import by.anegin.vkcup21.core.util.showKeyboard
 import by.anegin.vkcup21.di.taxi.DaggerTaxiComponent
 import by.anegin.vkcup21.di.taxi.TaxiModuleDependencies
 import by.anegin.vkcup21.features.taxi.models.Address
-import by.anegin.vkcup21.features.taxi.models.AddressMode
 import by.anegin.vkcup21.features.taxi.models.InfoWindowData
+import by.anegin.vkcup21.features.taxi.ui.util.VerticalSpacingItemDecoration
 import by.anegin.vkcup21.taxi.R
 import by.anegin.vkcup21.taxi.databinding.FragmentTaxiOrderingBinding
 import by.kirich1409.viewbindingdelegate.viewBinding
@@ -110,8 +112,11 @@ class TaxiOrderingFragment : Fragment(R.layout.fragment_taxi_ordering) {
     }
 
     private var bottomSheetBehavior: BottomSheetBehavior<*>? = null
+    private var bottomSheetPreviousState = BottomSheetBehavior.STATE_COLLAPSED
 
     private var pendingAddressTypeForFocus: Address.Type? = null
+
+    private var awaitingRoute = false
 
     override fun onAttach(context: Context) {
         super.onAttach(context)
@@ -185,16 +190,20 @@ class TaxiOrderingFragment : Fragment(R.layout.fragment_taxi_ordering) {
                     scaleY = doneButtonState
                 }
 
+                binding.bottomSheetAddressess.recyclerViewPlaces.alpha = offsetWithTreshold
+
                 updateMapLogoAndAttributionPosition()
             }
 
             override fun onStateChanged(bottomSheet: View, newState: Int) {
                 if (newState == BottomSheetBehavior.STATE_COLLAPSED) {
-                    viewModel.currentAddressMode = AddressMode.GEOCODING
+                    viewModel.isMapVisible = true
                     setInputAllowed(false)
-                } else if (newState == BottomSheetBehavior.STATE_EXPANDED) {
-                    viewModel.currentAddressMode = AddressMode.SEARCH
+                    bottomSheetPreviousState = newState
+                } else if (newState == BottomSheetBehavior.STATE_EXPANDED && bottomSheetPreviousState != BottomSheetBehavior.STATE_EXPANDED) {
+                    viewModel.isMapVisible = false
                     setInputAllowed(true)
+                    bottomSheetPreviousState = newState
                 }
             }
         })
@@ -274,6 +283,12 @@ class TaxiOrderingFragment : Fragment(R.layout.fragment_taxi_ordering) {
                 setText(title)
                 setSelection(title.length)
             }
+            address?.let {
+                maybeUpdateSourceAddressMarkerByMyLocation(it.latitude, it.longitude)
+                if (it.source == Address.Source.USER_SPECIFIED) {
+                    isSourceAddressMarkerDragged = true
+                }
+            }
         }
         viewModel.destinationAddress.observe(viewLifecycleOwner) { address ->
             val title = address?.title.orEmpty()
@@ -281,10 +296,23 @@ class TaxiOrderingFragment : Fragment(R.layout.fragment_taxi_ordering) {
                 setText(title)
                 setSelection(title.length)
             }
+            address?.let {
+                maybeUpdateDestinationAddressMarkerByMyLocation(it.latitude, it.longitude)
+                if (it.source == Address.Source.USER_SPECIFIED) {
+                    isDestinationAddressMarkerDragged = true
+                }
+            }
         }
 
         viewModel.myLocation.observe(viewLifecycleOwner) { myLocation ->
-            maybeUpdateAddressMarkerByMyLocation(myLocation.latitude, myLocation.longitude)
+            if (map != null && myLocation != null) {
+                if (!isDestinationAddressMarkerDragged) {
+                    maybeUpdateDestinationAddressMarkerByMyLocation(myLocation.latitude, myLocation.longitude)
+                }
+                if (!isSourceAddressMarkerDragged) {
+                    maybeUpdateSourceAddressMarkerByMyLocation(myLocation.latitude, myLocation.longitude)
+                }
+            }
         }
 
         viewModel.route.observe(viewLifecycleOwner) { route ->
@@ -298,8 +326,41 @@ class TaxiOrderingFragment : Fragment(R.layout.fragment_taxi_ordering) {
                     routeGeoJson?.setGeoJson(FeatureCollection.fromFeatures(emptyList()))
                 }
             }
+
+            if (route != null && awaitingRoute) {
+                awaitingRoute = false
+                if (bottomSheetBehavior?.state == BottomSheetBehavior.STATE_EXPANDED) {
+                    bottomSheetBehavior?.state = BottomSheetBehavior.STATE_COLLAPSED
+                }
+            }
         }
         viewModel.infoWindowBitmap.observe(viewLifecycleOwner, observer = ::showInfoWindow)
+
+        // === Places ===
+
+        val placesAdapter = PlacesAdapter { place ->
+            val currentAddressType = if (binding.bottomSheetAddressess.editSourceAddress.isFocused) {
+                Address.Type.SOURCE
+            } else {
+                Address.Type.DESTINATION
+            }
+            awaitingRoute = true
+            viewModel.onPlaceSelected(place, currentAddressType)
+        }
+        binding.bottomSheetAddressess.recyclerViewPlaces.apply {
+            layoutManager = LinearLayoutManager(context)
+            adapter = placesAdapter
+            addItemDecoration(
+                VerticalSpacingItemDecoration(
+                    topSpacing = 18.dp,
+                    bottomSpacing = 18.dp + systemBarInsets.second
+                )
+            )
+        }
+
+        viewModel.nearbyPlaces.observe(viewLifecycleOwner) { places ->
+            placesAdapter.submitList(places)
+        }
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -452,7 +513,7 @@ class TaxiOrderingFragment : Fragment(R.layout.fragment_taxi_ordering) {
                             else -> null
                         }
                         addressType?.let {
-                            viewModel.onMarkerDragged(annotation.latLng.latitude, annotation.latLng.longitude, Address.Source.USER_SPECIFIED, it)
+                            viewModel.geocodeLocation(annotation.latLng.latitude, annotation.latLng.longitude, Address.Source.USER_SPECIFIED, it)
 
                             if (addressType == Address.Type.SOURCE && !isDestinationAddressMarkerDragged && viewModel.destinationAddress.value == null) {
                                 viewModel.setDestinationAddressVisible()
@@ -524,47 +585,53 @@ class TaxiOrderingFragment : Fragment(R.layout.fragment_taxi_ordering) {
         }
     }
 
-    private fun maybeUpdateAddressMarkerByMyLocation(latitude: Double, longitude: Double) {
-        if (map == null) return
-        if (map == null || isSourceAddressMarkerDragged) return
-
-        val latLng = LatLng(latitude, longitude)
-
-        if (!isDestinationAddressMarkerDragged) {
-            this.destinationAddressMarker
-                ?.apply {
-                    this.latLng = latLng
+    private fun maybeUpdateSourceAddressMarkerByMyLocation(latitude: Double, longitude: Double) {
+        var updated = false
+        this.sourceAddressMarker
+            ?.apply {
+                if (this.latLng.latitude != latitude || this.latLng.longitude != longitude) {
+                    this.latLng = LatLng(latitude, longitude)
                     symbolManager?.update(this)
+                    updated = true
                 }
-                ?: symbolManager?.create(
-                    SymbolOptions()
-                        .withLatLng(latLng)
-                        .withIconImage(IMAGE_DESTINATION_ADDRESS_PIN)
-                        .withIconAnchor(Property.ICON_ANCHOR_BOTTOM)
-                        .withDraggable(true)
-                        .withTextOffset(arrayOf(0f, 48f))
-                ).also {
-                    this.destinationAddressMarker = it
-                }
-            viewModel.onMarkerDragged(latLng.latitude, latLng.longitude, Address.Source.MY_LOCATION, Address.Type.DESTINATION)
+            }
+            ?: symbolManager?.create(
+                SymbolOptions()
+                    .withLatLng(LatLng(latitude, longitude))
+                    .withIconImage(IMAGE_SOURCE_ADDRESS_PIN)
+                    .withIconAnchor(Property.ICON_ANCHOR_CENTER)
+                    .withDraggable(true)
+            ).also {
+                this.sourceAddressMarker = it
+                updated = true
+            }
+        if (updated) {
+            viewModel.geocodeLocation(latitude, longitude, Address.Source.MY_LOCATION, Address.Type.SOURCE)
         }
+    }
 
-        if (!isSourceAddressMarkerDragged) {
-            this.sourceAddressMarker
-                ?.apply {
-                    this.latLng = latLng
+    private fun maybeUpdateDestinationAddressMarkerByMyLocation(latitude: Double, longitude: Double) {
+        var updated = false
+        this.destinationAddressMarker
+            ?.apply {
+                if (this.latLng.latitude != latitude || this.latLng.longitude != longitude) {
+                    this.latLng = LatLng(latitude, longitude)
                     symbolManager?.update(this)
+                    updated = true
                 }
-                ?: symbolManager?.create(
-                    SymbolOptions()
-                        .withLatLng(latLng)
-                        .withIconImage(IMAGE_SOURCE_ADDRESS_PIN)
-                        .withIconAnchor(Property.ICON_ANCHOR_CENTER)
-                        .withDraggable(true)
-                ).also {
-                    this.sourceAddressMarker = it
-                }
-            viewModel.onMarkerDragged(latLng.latitude, latLng.longitude, Address.Source.MY_LOCATION, Address.Type.SOURCE)
+            }
+            ?: symbolManager?.create(
+                SymbolOptions()
+                    .withLatLng(LatLng(latitude, longitude))
+                    .withIconImage(IMAGE_DESTINATION_ADDRESS_PIN)
+                    .withIconAnchor(Property.ICON_ANCHOR_BOTTOM)
+                    .withDraggable(true)
+            ).also {
+                this.destinationAddressMarker = it
+                updated = true
+            }
+        if (updated) {
+            viewModel.geocodeLocation(latitude, longitude, Address.Source.MY_LOCATION, Address.Type.DESTINATION)
         }
     }
 

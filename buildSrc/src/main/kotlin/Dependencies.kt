@@ -73,6 +73,7 @@ object Deps {
     object PlayServices {
         const val basement = "com.google.android.gms:play-services-basement:17.6.0"
         const val location = "com.google.android.gms:play-services-location:18.0.0"
+
     }
 
     object OkHttp3 {
@@ -93,6 +94,10 @@ object Deps {
         const val navigation = "com.mapbox.navigation:ui:1.6.1"
         const val annotationPlugin = "com.mapbox.mapboxsdk:mapbox-android-plugin-annotation-v9:0.9.0"
         const val localizationPlugin = "com.mapbox.mapboxsdk:mapbox-android-plugin-localization-v9:0.12.0"
+    }
+
+    object GoogleLibs {
+        const val places = "com.google.android.libraries.places:places:2.4.0"
     }
 
     const val timber = "com.jakewharton.timber:timber:4.7.1"

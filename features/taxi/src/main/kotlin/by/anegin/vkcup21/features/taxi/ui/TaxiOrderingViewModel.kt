@@ -4,18 +4,20 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import by.anegin.vkcup21.core.resources.ResourceProvider
 import by.anegin.vkcup21.features.taxi.models.Address
-import by.anegin.vkcup21.features.taxi.models.AddressMode
 import by.anegin.vkcup21.features.taxi.models.GeoCodeQuery
 import by.anegin.vkcup21.features.taxi.models.GeoCodeResult
 import by.anegin.vkcup21.features.taxi.models.InfoWindowData
+import by.anegin.vkcup21.features.taxi.models.Place
+import by.anegin.vkcup21.features.taxi.models.Position
 import by.anegin.vkcup21.features.taxi.models.RouteDetails
 import by.anegin.vkcup21.features.taxi.tools.GeoCoder
+import by.anegin.vkcup21.features.taxi.tools.GeoUtil
 import by.anegin.vkcup21.features.taxi.tools.LocationProvider
+import by.anegin.vkcup21.features.taxi.tools.NearbyPlacesProvider
 import by.anegin.vkcup21.features.taxi.tools.OrderManager
 import by.anegin.vkcup21.features.taxi.tools.RouteBuilder
 import by.anegin.vkcup21.features.taxi.ui.util.InfoWindowGenerator
 import by.anegin.vkcup21.taxi.R
-import com.mapbox.mapboxsdk.geometry.LatLng
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.BufferOverflow
@@ -36,13 +38,16 @@ import javax.inject.Inject
 class TaxiOrderingViewModel @Inject constructor(
     locationProvider: LocationProvider,
     private val resourceProvider: ResourceProvider,
+    private val geoUtil: GeoUtil,
     private val geoCoder: GeoCoder,
     private val routeBuilder: RouteBuilder,
     private val orderManager: OrderManager,
-    private val infoWindowGenerator: InfoWindowGenerator
+    private val infoWindowGenerator: InfoWindowGenerator,
+    private val nearbyPlacesProvider: NearbyPlacesProvider
 ) : ViewModel() {
 
     val myLocation = locationProvider.location
+        .stateIn(viewModelScope, SharingStarted.Lazily, null)
 
     private val geocodeQuery = MutableSharedFlow<GeoCodeQuery>(
         replay = 0,
@@ -50,24 +55,30 @@ class TaxiOrderingViewModel @Inject constructor(
         onBufferOverflow = BufferOverflow.SUSPEND
     )
     private val geoCodeResult = geocodeQuery
-        .map { geocode(it) }
+        .map {
+            geocode(it)
+        }
 
-    var currentAddressMode = AddressMode.GEOCODING
+    var isMapVisible = true
 
-    private val sourceLatLng = MutableStateFlow<LatLng?>(null)
+    private val sourceLatLng = MutableStateFlow<Position?>(null)
     private val _sourceAddress = MutableStateFlow<Address?>(null)
     val sourceAddress = _sourceAddress
         .asStateFlow()
         .filterNotNull()
-        .filter { currentAddressMode == AddressMode.GEOCODING }
+        .filter {
+            isMapVisible || it.source == Address.Source.USER_SPECIFIED
+        }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
-    private val destinationLatLng = MutableStateFlow<LatLng?>(null)
+    private val destinationLatLng = MutableStateFlow<Position?>(null)
     private val _destinationAddress = MutableStateFlow<Address?>(null)
     val destinationAddress = _destinationAddress
         .asStateFlow()
         .filterNotNull()
-        .filter { currentAddressMode == AddressMode.GEOCODING }
+        .filter {
+            isMapVisible || it.source == Address.Source.USER_SPECIFIED
+        }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     val route = combine(sourceLatLng, destinationLatLng, routeBuilder::buildRoute)
@@ -88,35 +99,56 @@ class TaxiOrderingViewModel @Inject constructor(
             }
         }
 
+    private val _nearbyPlaces = MutableStateFlow<List<Place>>(emptyList())
+    val nearbyPlaces = _nearbyPlaces.asStateFlow()
+
     private var locationPermissionRequested = false
 
     init {
         viewModelScope.launch {
             geoCodeResult.collect { result ->
-                when (result) {
+                val address = when (result) {
                     is GeoCodeResult.AddressByLocation -> {
-                        val address = Address(
+                        Address(
                             latitude = result.query.latitude,
                             longitude = result.query.longitude,
                             type = result.query.addressType,
                             source = result.query.source,
-                            title = result.address ?: "${result.query.latitude}, ${result.query.longitude}"
+                            title = result.addressTitle ?: "${result.query.latitude}, ${result.query.longitude}"
                         )
-                        when (result.query.addressType) {
-                            Address.Type.SOURCE -> {
-                                sourceLatLng.emit(LatLng(address.latitude, address.longitude))
-                                _sourceAddress.emit(address)
-                            }
-                            Address.Type.DESTINATION -> {
-                                destinationLatLng.emit(LatLng(address.latitude, address.longitude))
-                                if (result.query.source != Address.Source.MY_LOCATION) {
-                                    _destinationAddress.emit(address)
-                                }
-                            }
+
+                    }
+                    is GeoCodeResult.AddressByPlace -> {
+                        Address(
+                            latitude = result.query.place.latitude,
+                            longitude = result.query.place.longitude,
+                            type = result.query.addressType,
+                            source = result.query.source,
+                            title = result.addressTitle ?: "${result.query.place.latitude}, ${result.query.place.longitude}"
+                        )
+                    }
+                }
+                when (address.type) {
+                    Address.Type.SOURCE -> {
+                        sourceLatLng.emit(Position(address.latitude, address.longitude))
+                        _sourceAddress.emit(address)
+                    }
+                    Address.Type.DESTINATION -> {
+                        destinationLatLng.emit(Position(address.latitude, address.longitude))
+                        if (address.source != Address.Source.MY_LOCATION) {
+                            _destinationAddress.emit(address)
                         }
                     }
                 }
             }
+        }
+        viewModelScope.launch {
+            val places = nearbyPlacesProvider.findNearbyPlaces(20)
+            _nearbyPlaces.value = myLocation.value?.let { myLocation ->
+                places.sortedBy {
+                    geoUtil.getDistance(myLocation.latitude, myLocation.longitude, it.latitude, it.longitude)
+                }
+            } ?: places
         }
     }
 
@@ -128,7 +160,7 @@ class TaxiOrderingViewModel @Inject constructor(
         locationPermissionRequested = true
     }
 
-    fun onMarkerDragged(latitude: Double, longitude: Double, source: Address.Source, type: Address.Type) {
+    fun geocodeLocation(latitude: Double, longitude: Double, source: Address.Source, type: Address.Type) {
 
         // skip geocoding if we receive coordinates from location provider but user has already selected address manually
         if (source == Address.Source.MY_LOCATION) {
@@ -152,14 +184,26 @@ class TaxiOrderingViewModel @Inject constructor(
 
     fun setDestinationAddressVisible() {
         destinationLatLng.value?.let {
-            onMarkerDragged(it.latitude, it.longitude, Address.Source.USER_SPECIFIED, Address.Type.DESTINATION)
+            geocodeLocation(it.latitude, it.longitude, Address.Source.USER_SPECIFIED, Address.Type.DESTINATION)
+        }
+    }
+
+    fun onPlaceSelected(place: Place, type: Address.Type) {
+        viewModelScope.launch(Dispatchers.Default) {
+            geocodeQuery.emit(
+                GeoCodeQuery.AddressByPlace(
+                    source = Address.Source.USER_SPECIFIED,
+                    place = place,
+                    addressType = type
+                )
+            )
         }
     }
 
     private suspend fun geocode(query: GeoCodeQuery): GeoCodeResult {
         return when (query) {
             is GeoCodeQuery.AddressByLocation -> {
-                val address = try {
+                val addressTitle = try {
                     geoCoder.reverseGeoCode(query.latitude, query.longitude)
                 } catch (e: Throwable) {
                     if (e !is CancellationException) {
@@ -167,7 +211,18 @@ class TaxiOrderingViewModel @Inject constructor(
                     }
                     null
                 }
-                GeoCodeResult.AddressByLocation(query, address)
+                GeoCodeResult.AddressByLocation(query, addressTitle)
+            }
+            is GeoCodeQuery.AddressByPlace -> {
+                val addressTitle = try {
+                    geoCoder.reverseGeoCode(query.place.latitude, query.place.longitude)
+                } catch (e: Throwable) {
+                    if (e !is CancellationException) {
+                        Timber.e(e)
+                    }
+                    null
+                }
+                GeoCodeResult.AddressByPlace(query, addressTitle ?: query.place.address)
             }
         }
     }

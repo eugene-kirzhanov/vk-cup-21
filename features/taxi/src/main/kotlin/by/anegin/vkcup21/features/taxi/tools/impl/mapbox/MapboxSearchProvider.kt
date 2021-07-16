@@ -4,12 +4,11 @@ import android.app.Application
 import android.content.Context
 import by.anegin.vkcup21.features.taxi.tools.SearchProvider
 import by.anegin.vkcup21.taxi.R
+import com.mapbox.search.CategorySearchOptions
 import com.mapbox.search.MapboxSearchSdk
 import com.mapbox.search.location.DefaultLocationProvider
 import javax.inject.Inject
-import javax.inject.Singleton
 
-@Singleton
 class MapboxSearchProvider @Inject constructor(
     context: Context
 ) : SearchProvider {
@@ -24,10 +23,16 @@ class MapboxSearchProvider @Inject constructor(
         }
     }
 
-    fun search() {
-//        val categorySearchEngine = MapboxSearchSdk.createCategorySearchEngine()
-//
-//        MapboxSearchSdk.createReverseGeocodingSearchEngine().search()
+    suspend fun search() {
+        val categorySearchEngine = MapboxSearchSdk.createCategorySearchEngine()
+
+        val options = CategorySearchOptions.Builder()
+            .limit(1)
+            .build()
+
+        val results = makeSuspendSearch { callback ->
+            categorySearchEngine.search("cafe", options, callback)
+        }
 
     }
 

@@ -2,13 +2,13 @@ package by.anegin.vkcup21.features.taxi.tools.impl.mapbox
 
 import android.content.Context
 import by.anegin.vkcup21.di.IoDispatcher
+import by.anegin.vkcup21.features.taxi.models.Position
 import by.anegin.vkcup21.features.taxi.models.Route
 import by.anegin.vkcup21.features.taxi.tools.RouteBuilder
 import by.anegin.vkcup21.taxi.R
 import com.mapbox.api.directions.v5.DirectionsCriteria
 import com.mapbox.api.directions.v5.MapboxDirections
 import com.mapbox.geojson.Point
-import com.mapbox.mapboxsdk.geometry.LatLng
 import com.mapbox.turf.TurfConstants
 import com.mapbox.turf.TurfMeasurement
 import kotlinx.coroutines.CoroutineDispatcher
@@ -25,7 +25,7 @@ class MapboxRouteBuilder @Inject constructor(
         private const val MINIMUM_VALID_ROUTE_DISTANCE = 100 // in meters
     }
 
-    override suspend fun buildRoute(sourceLatLng: LatLng?, destinationLatLng: LatLng?): Route? = withContext(ioDispatcher) {
+    override suspend fun buildRoute(sourceLatLng: Position?, destinationLatLng: Position?): Route? = withContext(ioDispatcher) {
         if (sourceLatLng == null || destinationLatLng == null) return@withContext null
         val sourcePoint = Point.fromLngLat(sourceLatLng.longitude, sourceLatLng.latitude)
         val destPoint = Point.fromLngLat(destinationLatLng.longitude, destinationLatLng.latitude)
@@ -42,7 +42,8 @@ class MapboxRouteBuilder @Inject constructor(
                 .profile(DirectionsCriteria.PROFILE_DRIVING)
                 .accessToken(context.getString(R.string.mapbox_access_token))
                 .build()
-            val response = MapboxUtil.makeCall(client::enqueueCall, client::cancelCall)
+
+            val response = makeSuspendCall(client::enqueueCall, client::cancelCall)
 
             response.routes().firstOrNull()?.let {
                 Route(

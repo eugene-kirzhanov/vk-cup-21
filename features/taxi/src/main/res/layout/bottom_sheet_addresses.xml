@@ -6,6 +6,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@android:color/white"
+    android:clipChildren="false"
     app:behavior_hideable="false"
     app:behavior_peekHeight="@dimen/bottom_sheet_peek_height"
     app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior">
@@ -192,5 +193,17 @@
         tools:alpha="1"
         tools:scaleX="1"
         tools:scaleY="1" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recycler_view_places"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:overScrollMode="never"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/addresses_container"
+        tools:itemCount="5"
+        tools:listitem="@layout/listitem_place" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

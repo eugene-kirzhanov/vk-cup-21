@@ -1,6 +1,6 @@
 package by.anegin.vkcup21.features.taxi.models
 
-class Address(
+data class Address(
     val latitude: Double,
     val longitude: Double,
     val type: Type,

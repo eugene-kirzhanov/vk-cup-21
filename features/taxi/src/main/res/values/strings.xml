@@ -11,4 +11,6 @@
     <string name="trip_cost">Price %d ₽</string>
 
     <string name="common.done">Done</string>
+
+    <string name="places_autocomplete_label">...</string>
 </resources>
