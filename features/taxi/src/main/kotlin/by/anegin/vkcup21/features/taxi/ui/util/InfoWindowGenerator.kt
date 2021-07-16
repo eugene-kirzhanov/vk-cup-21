@@ -1,4 +1,4 @@
-package by.anegin.vkcup21.features.taxi.ui
+package by.anegin.vkcup21.features.taxi.ui.util
 
 import android.annotation.SuppressLint
 import android.content.Context

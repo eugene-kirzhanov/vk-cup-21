@@ -13,6 +13,7 @@ import by.anegin.vkcup21.features.taxi.tools.GeoCoder
 import by.anegin.vkcup21.features.taxi.tools.LocationProvider
 import by.anegin.vkcup21.features.taxi.tools.OrderManager
 import by.anegin.vkcup21.features.taxi.tools.RouteBuilder
+import by.anegin.vkcup21.features.taxi.ui.util.InfoWindowGenerator
 import by.anegin.vkcup21.taxi.R
 import com.mapbox.mapboxsdk.geometry.LatLng
 import kotlinx.coroutines.CancellationException

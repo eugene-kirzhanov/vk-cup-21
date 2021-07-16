@@ -583,7 +583,7 @@ class TaxiOrderingFragment : Fragment(R.layout.fragment_taxi_ordering) {
                     when {
                         binding.bottomSheetAddressess.editSourceAddress.text?.isEmpty() == true -> Address.Type.SOURCE
                         binding.bottomSheetAddressess.editDestinationAddress.text?.isEmpty() == true -> Address.Type.DESTINATION
-                        else -> null
+                        else -> Address.Type.DESTINATION
                     }
                 }
             when (addressTypeForFocus) {

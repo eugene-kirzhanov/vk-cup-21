@@ -55,12 +55,15 @@ dependencies {
     implementation(Deps.Retrofit2.gsonConverter)
 
     implementation(Deps.MapBox.sdk)
-    implementation(Deps.MapBox.services)
     implementation(Deps.MapBox.turf)
+    implementation(Deps.MapBox.services)
+    implementation(Deps.MapBox.search) {
+        exclude(group = "com.mapbox.mapboxsdk", module = "mapbox-android-telemetry")
+    }
     implementation(Deps.MapBox.navigation) {
         exclude(group = "com.mapbox.mapboxsdk", module = "mapbox-android-telemetry")
     }
-    implementation(Deps.MapBox.annotationPlugnin)
+    implementation(Deps.MapBox.annotationPlugin)
     implementation(Deps.MapBox.localizationPlugin)
 }
 

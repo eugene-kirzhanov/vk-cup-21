@@ -114,7 +114,7 @@
                     android:layout_height="match_parent"
                     android:enabled="false"
                     android:hint="@string/address.source_hint"
-                    android:inputType="textCapSentences"
+                    android:inputType="text"
                     android:padding="0dp"
                     android:textColor="@color/input_text"
                     android:textColorHint="@color/input_hint_text" />
@@ -140,7 +140,7 @@
                     android:layout_height="match_parent"
                     android:enabled="false"
                     android:hint="@string/address.destination_hint"
-                    android:inputType="textCapSentences"
+                    android:inputType="text"
                     android:padding="0dp"
                     android:textColor="@color/input_text"
                     android:textColorHint="@color/input_hint_text" />
