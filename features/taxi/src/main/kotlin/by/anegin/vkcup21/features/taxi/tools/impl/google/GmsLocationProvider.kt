@@ -1,9 +1,9 @@
 package by.anegin.vkcup21.features.taxi.tools.impl.google
 
 import android.content.Context
-import android.location.Location
 import android.os.Looper
 import by.anegin.vkcup21.di.ApplicationScope
+import by.anegin.vkcup21.features.taxi.models.Position
 import by.anegin.vkcup21.features.taxi.tools.LocationProvider
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
@@ -34,13 +34,13 @@ class GmsLocationProvider @Inject constructor(
         interval = 5 * 1000
     }
 
-    override val location: Flow<Location> = callbackFlow {
+    override val location: Flow<Position> = callbackFlow {
 
         // try to load last location
         val lastLocationJob = async {
             try {
                 locationProviderClient.lastLocation.await()?.let { lastLocation ->
-                    trySend(lastLocation)
+                    trySend(Position(lastLocation.latitude, lastLocation.longitude))
                 }
             } catch (e: SecurityException) {
                 Timber.w("Can't get last location due to SecurityException: $e")
@@ -56,7 +56,7 @@ class GmsLocationProvider @Inject constructor(
 
                 // emit last known location to flow
                 result.locations.lastOrNull()?.let { lastLocation ->
-                    trySend(lastLocation)
+                    trySend(Position(lastLocation.latitude, lastLocation.longitude))
                 }
             }
         }

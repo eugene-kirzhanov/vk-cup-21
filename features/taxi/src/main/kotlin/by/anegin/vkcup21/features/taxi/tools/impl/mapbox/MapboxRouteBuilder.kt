@@ -8,13 +8,20 @@ import by.anegin.vkcup21.features.taxi.tools.RouteBuilder
 import by.anegin.vkcup21.taxi.R
 import com.mapbox.api.directions.v5.DirectionsCriteria
 import com.mapbox.api.directions.v5.MapboxDirections
+import com.mapbox.api.directions.v5.models.DirectionsResponse
 import com.mapbox.geojson.Point
 import com.mapbox.turf.TurfConstants
 import com.mapbox.turf.TurfMeasurement
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
-import timber.log.Timber
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
+import java.io.IOException
 import javax.inject.Inject
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 
 class MapboxRouteBuilder @Inject constructor(
     private val context: Context,
@@ -26,14 +33,21 @@ class MapboxRouteBuilder @Inject constructor(
     }
 
     override suspend fun buildRoute(sourceLatLng: Position?, destinationLatLng: Position?): Route? = withContext(ioDispatcher) {
-        if (sourceLatLng == null || destinationLatLng == null) return@withContext null
-        val sourcePoint = Point.fromLngLat(sourceLatLng.longitude, sourceLatLng.latitude)
-        val destPoint = Point.fromLngLat(destinationLatLng.longitude, destinationLatLng.latitude)
+        suspendCancellableCoroutine { continuation ->
+            if (sourceLatLng == null || destinationLatLng == null) {
+                continuation.resume(null)
+                return@suspendCancellableCoroutine
+            }
 
-        val distance = TurfMeasurement.distance(sourcePoint, destPoint, TurfConstants.UNIT_METERS)
-        if (distance < MINIMUM_VALID_ROUTE_DISTANCE) return@withContext null
+            val sourcePoint = Point.fromLngLat(sourceLatLng.longitude, sourceLatLng.latitude)
+            val destPoint = Point.fromLngLat(destinationLatLng.longitude, destinationLatLng.latitude)
 
-        try {
+            val distance = TurfMeasurement.distance(sourcePoint, destPoint, TurfConstants.UNIT_METERS)
+            if (distance < MINIMUM_VALID_ROUTE_DISTANCE) {
+                continuation.resume(null)
+                return@suspendCancellableCoroutine
+            }
+
             val client = MapboxDirections.builder()
                 .origin(sourcePoint)
                 .destination(destPoint)
@@ -43,18 +57,34 @@ class MapboxRouteBuilder @Inject constructor(
                 .accessToken(context.getString(R.string.mapbox_access_token))
                 .build()
 
-            val response = makeSuspendCall(client::enqueueCall, client::cancelCall)
-
-            response.routes().firstOrNull()?.let {
-                Route(
-                    latitude = destinationLatLng.latitude,
-                    longitude = destinationLatLng.longitude,
-                    direction = it
-                )
+            continuation.invokeOnCancellation {
+                client.cancelCall()
             }
-        } catch (t: Throwable) {
-            Timber.w(t)
-            null
+
+            try {
+                client.enqueueCall(object : Callback<DirectionsResponse> {
+                    override fun onResponse(call: Call<DirectionsResponse>, response: Response<DirectionsResponse>) {
+                        response.body()?.let { body ->
+                            val route = body.routes().firstOrNull()?.let {
+                                Route(
+                                    latitude = destinationLatLng.latitude,
+                                    longitude = destinationLatLng.longitude,
+                                    direction = it
+                                )
+                            }
+                            continuation.resume(route)
+                        } ?: run {
+                            continuation.resumeWithException(IOException("Empty response body"))
+                        }
+                    }
+
+                    override fun onFailure(call: Call<DirectionsResponse>, t: Throwable) {
+                        continuation.resumeWithException(t)
+                    }
+                })
+            } catch (t: Throwable) {
+                continuation.resumeWithException(t)
+            }
         }
     }
 

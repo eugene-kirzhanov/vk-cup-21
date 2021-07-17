@@ -513,7 +513,7 @@ class TaxiOrderingFragment : Fragment(R.layout.fragment_taxi_ordering) {
                             else -> null
                         }
                         addressType?.let {
-                            viewModel.geocodeLocation(annotation.latLng.latitude, annotation.latLng.longitude, Address.Source.USER_SPECIFIED, it)
+                            viewModel.findAddressByPosition(annotation.latLng.latitude, annotation.latLng.longitude, Address.Source.USER_SPECIFIED, it)
 
                             if (addressType == Address.Type.SOURCE && !isDestinationAddressMarkerDragged && viewModel.destinationAddress.value == null) {
                                 viewModel.setDestinationAddressVisible()
@@ -606,7 +606,7 @@ class TaxiOrderingFragment : Fragment(R.layout.fragment_taxi_ordering) {
                 updated = true
             }
         if (updated) {
-            viewModel.geocodeLocation(latitude, longitude, Address.Source.MY_LOCATION, Address.Type.SOURCE)
+            viewModel.findAddressByPosition(latitude, longitude, Address.Source.MY_LOCATION, Address.Type.SOURCE)
         }
     }
 
@@ -631,7 +631,7 @@ class TaxiOrderingFragment : Fragment(R.layout.fragment_taxi_ordering) {
                 updated = true
             }
         if (updated) {
-            viewModel.geocodeLocation(latitude, longitude, Address.Source.MY_LOCATION, Address.Type.DESTINATION)
+            viewModel.findAddressByPosition(latitude, longitude, Address.Source.MY_LOCATION, Address.Type.DESTINATION)
         }
     }
 

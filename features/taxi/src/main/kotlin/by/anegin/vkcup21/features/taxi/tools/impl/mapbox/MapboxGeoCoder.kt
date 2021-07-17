@@ -3,17 +3,28 @@ package by.anegin.vkcup21.features.taxi.tools.impl.mapbox
 import android.app.Application
 import android.content.Context
 import by.anegin.vkcup21.di.IoDispatcher
+import by.anegin.vkcup21.features.taxi.models.Place
 import by.anegin.vkcup21.features.taxi.tools.GeoCoder
 import by.anegin.vkcup21.taxi.R
 import com.mapbox.geojson.Point
 import com.mapbox.search.MapboxSearchSdk
 import com.mapbox.search.QueryType
+import com.mapbox.search.ResponseInfo
 import com.mapbox.search.ReverseGeoOptions
+import com.mapbox.search.SearchCallback
+import com.mapbox.search.SearchOptions
+import com.mapbox.search.SearchSelectionCallback
 import com.mapbox.search.location.DefaultLocationProvider
+import com.mapbox.search.result.SearchResult
+import com.mapbox.search.result.SearchSuggestion
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
+import timber.log.Timber
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 
 class MapboxGeoCoder @Inject constructor(
     context: Context,
@@ -41,27 +52,78 @@ class MapboxGeoCoder @Inject constructor(
     }
 
     override suspend fun reverseGeoCode(latitude: Double, longitude: Double): String? = withContext(ioDispatcher) {
-        val reverseGeocodingSearchEngine = MapboxSearchSdk.createReverseGeocodingSearchEngine()
+        suspendCancellableCoroutine { continuation ->
+            val reverseGeocodingSearchEngine = MapboxSearchSdk.createReverseGeocodingSearchEngine()
 
-        val options = ReverseGeoOptions.Builder(Point.fromLngLat(longitude, latitude))
-            .types(QueryType.ADDRESS)
-            .limit(1)
-            .build()
+            val options = ReverseGeoOptions.Builder(Point.fromLngLat(longitude, latitude))
+                .types(QueryType.ADDRESS)
+                .limit(1)
+                .build()
 
-        val results = makeSuspendSearch { callback ->
-            reverseGeocodingSearchEngine.search(options, callback)
-        }
+            val task = reverseGeocodingSearchEngine.search(
+                options,
+                object : SearchCallback {
+                    override fun onResults(results: List<SearchResult>, responseInfo: ResponseInfo) {
+                        val result = results.firstOrNull()?.let { result ->
+                            result.address?.street?.let { street ->
+                                val houseNumber = result.address?.houseNumber.orEmpty()
+                                buildString {
+                                    append(street)
+                                    if (houseNumber.isNotEmpty()) {
+                                        append(", ").append(houseNumber)
+                                    }
+                                }
+                            } ?: result.name
+                        }
+                        continuation.resume(result)
+                    }
 
-        results.firstOrNull()?.let { result ->
-            result.address?.street?.let { street ->
-                val houseNumber = result.address?.houseNumber.orEmpty()
-                buildString {
-                    append(street)
-                    if (houseNumber.isNotEmpty()) {
-                        append(", ").append(houseNumber)
+                    override fun onError(e: Exception) {
+                        continuation.resumeWithException(e)
                     }
                 }
-            } ?: result.name
+            )
+
+            continuation.invokeOnCancellation {
+                task.cancel()
+            }
+        }
+    }
+
+    override suspend fun search(query: String): List<Place> = withContext(ioDispatcher) {
+        suspendCancellableCoroutine { continuation ->
+            val searchEngine = MapboxSearchSdk.createSearchEngine()
+
+            val options = SearchOptions.Builder()
+                .limit(5)
+                .build()
+
+            val task = searchEngine.search(
+                query, options,
+                object : SearchSelectionCallback {
+                    override fun onCategoryResult(suggestion: SearchSuggestion, results: List<SearchResult>, responseInfo: ResponseInfo) {
+                        Timber.w("onCategoryResult()")
+                    }
+
+                    override fun onSuggestions(suggestions: List<SearchSuggestion>, responseInfo: ResponseInfo) {
+                        Timber.w("onSuggestions()")
+                    }
+
+                    override fun onResult(suggestion: SearchSuggestion, result: SearchResult, responseInfo: ResponseInfo) {
+                        Timber.w("onResult()")
+                        continuation.resume(emptyList())
+                    }
+
+                    override fun onError(e: Exception) {
+                        Timber.w("onError()")
+                        continuation.resumeWithException(e)
+                    }
+                }
+            )
+
+            continuation.invokeOnCancellation {
+                task.cancel()
+            }
         }
     }
 
