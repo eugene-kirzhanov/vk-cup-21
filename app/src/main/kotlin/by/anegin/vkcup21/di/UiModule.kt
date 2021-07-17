@@ -13,18 +13,19 @@ import dagger.hilt.components.SingletonComponent
 
 @Module
 @InstallIn(SingletonComponent::class)
-abstract class UiModule {
+@Suppress("unused")
+internal interface UiModule {
 
     @Binds
-    internal abstract fun bindAppNavigator(impl: HostAppNavigator): AppNavigator
+    fun bindAppNavigator(impl: HostAppNavigator): AppNavigator
 
     @Binds
-    internal abstract fun bindAppNavigatorSource(impl: HostAppNavigator): AppNavigatorSource
+    fun bindAppNavigatorSource(impl: HostAppNavigator): AppNavigatorSource
 
     @Binds
-    internal abstract fun bindAppUiController(impl: HostAppUiController): AppUiController
+    fun bindAppUiController(impl: HostAppUiController): AppUiController
 
     @Binds
-    internal abstract fun bindAppUiControllerSource(impl: HostAppUiController): AppUiControllerSource
+    fun bindAppUiControllerSource(impl: HostAppUiController): AppUiControllerSource
 
 }

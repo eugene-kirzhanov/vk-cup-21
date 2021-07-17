@@ -33,7 +33,7 @@
         android:visibility="gone"
         app:backgroundTint="#ffffff"
         app:fabCustomSize="@dimen/fab_size"
-        app:layout_behavior="by.anegin.vkcup21.features.taxi.ui.util.AboveBottomSheetBehavior"
+        app:layout_behavior="by.anegin.vkcup21.features.taxi.ui.order.util.AboveBottomSheetBehavior"
         tools:visibility="visible" />
 
     <include

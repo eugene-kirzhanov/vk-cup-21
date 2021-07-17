@@ -4,7 +4,7 @@ import android.os.Build
 import android.view.View
 import android.view.WindowInsetsController
 
-fun View.setLightStatusBar(light: Boolean = true) {
+internal fun View.setLightStatusBar(light: Boolean = true) {
     when {
         Build.VERSION.SDK_INT >= Build.VERSION_CODES.R -> {
             windowInsetsController?.setSystemBarsAppearance(
@@ -23,7 +23,7 @@ fun View.setLightStatusBar(light: Boolean = true) {
     }
 }
 
-fun View.setLightNavigationBar(light: Boolean = true) {
+internal fun View.setLightNavigationBar(light: Boolean = true) {
     when {
         Build.VERSION.SDK_INT >= Build.VERSION_CODES.R -> {
             windowInsetsController?.setSystemBarsAppearance(

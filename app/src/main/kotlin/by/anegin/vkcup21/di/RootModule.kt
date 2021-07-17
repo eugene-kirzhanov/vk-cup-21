@@ -2,8 +2,8 @@ package by.anegin.vkcup21.di
 
 import android.content.Context
 import by.anegin.vkcup21.VkCupApp
-import by.anegin.vkcup21.core.resources.AndroidResourceProvider
 import by.anegin.vkcup21.core.resources.ResourceProvider
+import by.anegin.vkcup21.internal.resources.AndroidResourceProvider
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn

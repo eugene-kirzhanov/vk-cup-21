@@ -19,7 +19,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
 @AndroidEntryPoint
-class MainActivity : AppCompatActivity(R.layout.activity_main) {
+internal class MainActivity : AppCompatActivity(R.layout.activity_main) {
 
     @Inject
     internal lateinit var navigatorSource: AppNavigatorSource

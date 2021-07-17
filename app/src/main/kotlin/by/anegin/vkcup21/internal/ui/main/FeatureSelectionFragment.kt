@@ -13,7 +13,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
 @AndroidEntryPoint
-class FeatureSelectionFragment : Fragment(R.layout.fragment_feature_selection) {
+internal class FeatureSelectionFragment : Fragment(R.layout.fragment_feature_selection) {
 
     @Inject
     lateinit var appNavigator: AppNavigator
