@@ -3,6 +3,7 @@ package by.anegin.vkcup21.features.news.ui.feed
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import by.anegin.vkcup21.features.news.data.FeedRepository
+import by.anegin.vkcup21.features.news.data.FeedSettings
 import by.anegin.vkcup21.features.news.data.models.Post
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -15,7 +16,8 @@ import timber.log.Timber
 import javax.inject.Inject
 
 internal class NewsViewModel @Inject constructor(
-    private val feedRepository: FeedRepository
+    private val feedRepository: FeedRepository,
+    private val feedSettings: FeedSettings
 ) : ViewModel() {
 
     companion object {
@@ -23,7 +25,7 @@ internal class NewsViewModel @Inject constructor(
         private const val POSTS_PRELOAD_TRESHOLD = 10
     }
 
-    private var nextFrom: String? = null
+    private var nextFrom: String? = feedSettings.getNextFrom()
 
     private val posts = MutableStateFlow<List<Post>?>(null)
 
@@ -69,6 +71,7 @@ internal class NewsViewModel @Inject constructor(
             try {
                 val feed = feedRepository.getRecommendedFeed(POSTS_IN_REQUEST, nextFrom)
                 nextFrom = feed.nextFrom
+                feedSettings.saveNextFrom(feed.nextFrom)
 
                 val postsList = posts.value?.toMutableList() ?: ArrayList()
                 postsList.addAll(feed.posts)

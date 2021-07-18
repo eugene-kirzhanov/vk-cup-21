@@ -1,4 +1,4 @@
-package by.anegin.vkcup21.features.news.data.vk
+package by.anegin.vkcup21.features.news.data.impl
 
 import by.anegin.vkcup21.di.IoDispatcher
 import by.anegin.vkcup21.features.news.data.FeedRepository
