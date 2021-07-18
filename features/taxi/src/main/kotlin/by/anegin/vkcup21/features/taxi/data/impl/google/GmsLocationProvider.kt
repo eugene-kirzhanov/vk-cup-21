@@ -14,10 +14,10 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.callbackFlow
-import kotlinx.coroutines.flow.shareIn
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.tasks.await
 import timber.log.Timber
@@ -35,7 +35,7 @@ internal class GmsLocationProvider @Inject constructor(
         interval = 5 * 1000
     }
 
-    override val location: Flow<Position> = callbackFlow {
+    override val location: StateFlow<Position?> = callbackFlow {
 
         // try to load last location
         val lastLocationJob = async {
@@ -90,10 +90,6 @@ internal class GmsLocationProvider @Inject constructor(
             }
         }
 
-    }.shareIn(
-        applicationScope,
-        replay = 1,
-        started = SharingStarted.WhileSubscribed()
-    )
+    }.stateIn(applicationScope, SharingStarted.WhileSubscribed(), null)
 
 }

@@ -5,7 +5,11 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Bitmap
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.View
+import android.view.View.INVISIBLE
+import android.view.View.VISIBLE
 import android.view.ViewGroup
 import android.view.WindowManager
 import androidx.activity.OnBackPressedCallback
@@ -34,9 +38,11 @@ import by.anegin.vkcup21.features.taxi.data.impl.google.toLatLng
 import by.anegin.vkcup21.features.taxi.data.impl.mapbox.toLatLng
 import by.anegin.vkcup21.features.taxi.data.models.Address
 import by.anegin.vkcup21.features.taxi.data.models.Position
+import by.anegin.vkcup21.features.taxi.data.models.Route
 import by.anegin.vkcup21.features.taxi.di.DaggerTaxiComponent
 import by.anegin.vkcup21.features.taxi.ui.order.util.VerticalSpacingItemDecoration
 import by.anegin.vkcup21.features.taxi.util.LocationUtil
+import by.anegin.vkcup21.taxi.BuildConfig
 import by.anegin.vkcup21.taxi.R
 import by.anegin.vkcup21.taxi.databinding.FragmentTaxiOrderingBinding
 import by.kirich1409.viewbindingdelegate.viewBinding
@@ -48,6 +54,7 @@ import com.mapbox.geojson.LineString
 import com.mapbox.mapboxsdk.Mapbox
 import com.mapbox.mapboxsdk.camera.CameraPosition
 import com.mapbox.mapboxsdk.camera.CameraUpdateFactory
+import com.mapbox.mapboxsdk.geometry.LatLngBounds
 import com.mapbox.mapboxsdk.location.LocationComponentActivationOptions
 import com.mapbox.mapboxsdk.location.LocationComponentOptions
 import com.mapbox.mapboxsdk.location.modes.CameraMode
@@ -65,7 +72,6 @@ import com.mapbox.mapboxsdk.style.layers.Property.ICON_ROTATION_ALIGNMENT_VIEWPO
 import com.mapbox.mapboxsdk.style.layers.PropertyFactory
 import com.mapbox.mapboxsdk.style.sources.GeoJsonSource
 import dagger.hilt.android.EntryPointAccessors
-import timber.log.Timber
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 
@@ -86,7 +92,7 @@ internal class TaxiOrderingFragment : Fragment(R.layout.fragment_taxi_ordering) 
         private fun ensureMapboxInitialized(context: Context) {
             if (!isMapboxInitialized.getAndSet(true)) {
                 Mapbox.getInstance(context, context.getString(R.string.mapbox_access_token))
-                Mapbox.getTelemetry()?.setDebugLoggingEnabled(true)
+                Mapbox.getTelemetry()?.setDebugLoggingEnabled(BuildConfig.DEBUG)
             }
         }
     }
@@ -115,6 +121,7 @@ internal class TaxiOrderingFragment : Fragment(R.layout.fragment_taxi_ordering) 
     private var isDestinationAddressMarkerDragged = false
 
     private var infoWindow: Symbol? = null
+    private var infoWindowImageAdded = false
 
     private var bottomSheetBehavior: BottomSheetBehavior<*>? = null
     private var bottomSheetPreviousState = BottomSheetBehavior.STATE_COLLAPSED
@@ -182,6 +189,20 @@ internal class TaxiOrderingFragment : Fragment(R.layout.fragment_taxi_ordering) 
 
     // ===
 
+    private inner class AddressTextWatcher(private val addressType: Address.Type) : TextWatcher {
+        override fun afterTextChanged(s: Editable?) {
+            viewModel.findPlacesByText(s?.toString().orEmpty(), addressType)
+            updateClearInputButtonsState()
+        }
+
+        override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+
+        override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+    }
+
+    private val sourceAddressChangeListener = AddressTextWatcher(Address.Type.SOURCE)
+    private val destinationAddressChangeListener = AddressTextWatcher(Address.Type.DESTINATION)
+
     private fun setupUi(view: View) {
         appUiController.setupSystemBars(statusBar = SystemBar.Transparent, navigationBar = SystemBar.Default)
 
@@ -237,15 +258,20 @@ internal class TaxiOrderingFragment : Fragment(R.layout.fragment_taxi_ordering) 
         })
 
         binding.bottomSheetAddressess.apply {
+            editSourceAddress.addTextChangedListener(sourceAddressChangeListener)
+            editDestinationAddress.addTextChangedListener(destinationAddressChangeListener)
+
             editSourceAddress.setOnFocusChangeListener { _, hasFocus ->
                 if (hasFocus) {
                     textAddressesTitle.setText(R.string.address_source_hint)
                 }
+                updateClearInputButtonsState()
             }
             editDestinationAddress.setOnFocusChangeListener { _, hasFocus ->
                 if (hasFocus) {
                     textAddressesTitle.setText(R.string.address_destination_hint)
                 }
+                updateClearInputButtonsState()
             }
 
             sourceAddressOverlay.setOnClickListener {
@@ -262,6 +288,13 @@ internal class TaxiOrderingFragment : Fragment(R.layout.fragment_taxi_ordering) 
             buttonCloseAddresses.setOnClickListener {
                 setInputAllowed(false)
                 bottomSheetBehavior?.state = BottomSheetBehavior.STATE_COLLAPSED
+            }
+
+            buttonClearSourceAddress.setOnClickListener {
+                editSourceAddress.setText("")
+            }
+            buttonClearDestinationAddress.setOnClickListener {
+                editDestinationAddress.setText("")
             }
         }
 
@@ -307,9 +340,10 @@ internal class TaxiOrderingFragment : Fragment(R.layout.fragment_taxi_ordering) 
     private fun setupObservers() {
         viewModel.isLocationPermissionGranted.observe(viewLifecycleOwner) { isGranted ->
             updateMyLocationState(isGranted)
-            if (!isGranted) {
-                // todo поместить маркеры по центру карты
-            }
+
+            // todo put markers to the predefined default position
+            // if (!isGranted) {
+            // }
         }
         viewModel.isMyLocationButtonVisible.observe(viewLifecycleOwner) { isVisible ->
             if (isVisible && !binding.buttonMyLocation.isOrWillBeShown) {
@@ -322,9 +356,12 @@ internal class TaxiOrderingFragment : Fragment(R.layout.fragment_taxi_ordering) 
         viewModel.sourceAddress.observe(viewLifecycleOwner) { address ->
             val title = address?.title.orEmpty()
             binding.bottomSheetAddressess.editSourceAddress.apply {
+                removeTextChangedListener(sourceAddressChangeListener)
                 setText(title)
                 setSelection(title.length)
+                addTextChangedListener(sourceAddressChangeListener)
             }
+            updateClearInputButtonsState()
             address?.let {
                 maybeUpdateSourceAddressMarkerByMyLocation(it.position)
                 if (it.source == Address.Source.USER_SPECIFIED) {
@@ -335,9 +372,12 @@ internal class TaxiOrderingFragment : Fragment(R.layout.fragment_taxi_ordering) 
         viewModel.destinationAddress.observe(viewLifecycleOwner) { address ->
             val title = address?.title.orEmpty()
             binding.bottomSheetAddressess.editDestinationAddress.apply {
+                removeTextChangedListener(destinationAddressChangeListener)
                 setText(title)
                 setSelection(title.length)
+                addTextChangedListener(destinationAddressChangeListener)
             }
+            updateClearInputButtonsState()
             address?.let {
                 maybeUpdateDestinationAddressMarkerByMyLocation(it.position)
                 if (it.source == Address.Source.USER_SPECIFIED) {
@@ -369,12 +409,13 @@ internal class TaxiOrderingFragment : Fragment(R.layout.fragment_taxi_ordering) 
                 }
             }
 
-            Timber.w(" >>> viewmodel.route(): $route")
-
             if (route != null && awaitingRouteAfterSelectingPlace) {
                 awaitingRouteAfterSelectingPlace = false
                 if (bottomSheetBehavior?.state == BottomSheetBehavior.STATE_EXPANDED) {
                     bottomSheetBehavior?.state = BottomSheetBehavior.STATE_COLLAPSED
+                }
+                route.result?.let {
+                    zoomCameraToRoute(it)
                 }
             }
         }
@@ -424,6 +465,11 @@ internal class TaxiOrderingFragment : Fragment(R.layout.fragment_taxi_ordering) 
                 alpha = doneButtonState
                 scaleX = doneButtonState
                 scaleY = doneButtonState
+                if (alpha == 0f && visibility != INVISIBLE) {
+                    visibility = INVISIBLE
+                } else if (alpha > 0f && visibility != VISIBLE) {
+                    visibility = VISIBLE
+                }
             }
 
             recyclerViewPlaces.alpha = offsetWithTreshold
@@ -488,8 +534,15 @@ internal class TaxiOrderingFragment : Fragment(R.layout.fragment_taxi_ordering) 
                 renderMode = RenderMode.COMPASS
             }
 
-            val localizationPlugin = LocalizationPlugin(binding.mapView, map, loadedStyle)
-            localizationPlugin.matchMapLanguageWithDeviceDefault()
+            LocalizationPlugin(binding.mapView, map, loadedStyle).apply {
+                matchMapLanguageWithDeviceDefault()
+                map.addOnCameraIdleListener {
+                    matchMapLanguageWithDeviceDefault()
+                }
+                map.addOnCameraMoveCancelListener {
+                    matchMapLanguageWithDeviceDefault()
+                }
+            }
 
             updateMyLocationState(viewModel.isLocationPermissionGranted.value)
 
@@ -591,6 +644,23 @@ internal class TaxiOrderingFragment : Fragment(R.layout.fragment_taxi_ordering) 
                 )
             }
         }
+    }
+
+    private fun zoomCameraToRoute(route: Route) {
+        val routeBounds = LatLngBounds.Builder()
+            .include(route.source.toLatLng())
+            .include(route.destination.toLatLng())
+            .build()
+        val padding = 64.dp.toInt()
+        map?.animateCamera(
+            CameraUpdateFactory.newLatLngBounds(
+                routeBounds,
+                padding,
+                padding,
+                padding,
+                (bottomSheetBehavior?.peekHeight ?: 0) + padding
+            )
+        )
     }
 
     private fun updateMyLocationButtonVisibility() {
@@ -703,6 +773,7 @@ internal class TaxiOrderingFragment : Fragment(R.layout.fragment_taxi_ordering) 
             activity?.currentFocus?.clearFocus()
             hideKeyboard()
         }
+        updateClearInputButtonsState()
     }
 
     private fun updateDoneButtonState(isRouteAvailable: Boolean) {
@@ -713,13 +784,33 @@ internal class TaxiOrderingFragment : Fragment(R.layout.fragment_taxi_ordering) 
         }
         if (bottomSheetBehavior?.state == BottomSheetBehavior.STATE_COLLAPSED) {
             bottomSheetBehavior?.setPeekHeight(peekHeight, true)
-            binding.bottomSheetAddressess.buttonDone.animate()
-                .scaleX(doneButtonAlpha)
-                .scaleY(doneButtonAlpha)
-                .alpha(doneButtonAlpha)
-                .start()
+            binding.bottomSheetAddressess.buttonDone.apply {
+                animate()
+                    .scaleX(doneButtonAlpha)
+                    .scaleY(doneButtonAlpha)
+                    .alpha(doneButtonAlpha)
+                    .setUpdateListener {
+                        if (alpha == 0f && visibility != INVISIBLE) {
+                            visibility = INVISIBLE
+                        } else if (alpha > 0f && visibility != VISIBLE) {
+                            visibility = VISIBLE
+                        }
+                    }
+                    .start()
+            }
         } else {
             bottomSheetBehavior?.peekHeight = peekHeight
+        }
+    }
+
+    private fun updateClearInputButtonsState() {
+        binding.bottomSheetAddressess.apply {
+            buttonClearSourceAddress.isVisible = editSourceAddress.isEnabled
+                && editSourceAddress.isFocused
+                && (editSourceAddress.text?.length ?: 0) > 0
+            buttonClearDestinationAddress.isVisible = editDestinationAddress.isEnabled
+                && editDestinationAddress.isFocused
+                && (editDestinationAddress.text?.length ?: 0) > 0
         }
     }
 
@@ -728,10 +819,14 @@ internal class TaxiOrderingFragment : Fragment(R.layout.fragment_taxi_ordering) 
             symbolManager?.delete(infoWindow)
         }
         map?.getStyle { style ->
-            style.removeImage(IMAGE_INFO_WINDOW)
+            if (infoWindowImageAdded) {
+                infoWindowImageAdded = false
+                style.removeImage(IMAGE_INFO_WINDOW)
+            }
 
             infoWindowData?.let { (destination, infoWindowBitmap) ->
                 style.addImage(IMAGE_INFO_WINDOW, infoWindowBitmap)
+                infoWindowImageAdded = true
 
                 infoWindow = symbolManager?.create(
                     SymbolOptions()
@@ -749,8 +844,11 @@ internal class TaxiOrderingFragment : Fragment(R.layout.fragment_taxi_ordering) 
             symbolManager?.delete(it)
         }
         infoWindow = null
-        map?.getStyle {
-            it.removeImage(IMAGE_INFO_WINDOW)
+        if (infoWindowImageAdded) {
+            infoWindowImageAdded = false
+            map?.getStyle {
+                it.removeImage(IMAGE_INFO_WINDOW)
+            }
         }
     }
 

@@ -7,10 +7,10 @@
     <string name="address.source_hint">Source address</string>
     <string name="address.destination_hint">Destination address</string>
 
-    <string name="trip_duration">Travel time %d min</string>
+    <string name="trip_duration">Travel time %s</string>
     <string name="trip_cost">Price %d ₽</string>
+    <string name="time_in_minutes">%d min</string>
+    <string name="time_in_hours">%d h</string>
 
     <string name="common.done">Done</string>
-
-    <string name="places_autocomplete_label">...</string>
 </resources>

@@ -27,6 +27,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.map
@@ -38,7 +39,7 @@ import javax.inject.Inject
 
 internal class TaxiOrderingViewModel @Inject constructor(
     locationProvider: LocationProvider,
-    private val resourceProvider: ResourceProvider,
+    private val resources: ResourceProvider,
     private val geoUtil: GeoUtil,
     private val geoCoder: GeoCoder,
     private val routeBuilder: RouteBuilder,
@@ -89,24 +90,28 @@ internal class TaxiOrderingViewModel @Inject constructor(
         .map(::makeInfoWindow)
 
     private val nearbyPlacesRequestedOnce = AtomicBoolean(false)
-
     private val nearbyPlaces = combine(
         isLocationPermissionGranted
+            // await until permission is granted
             .filter { it },
         locationProvider.location
+            // await and allow only first request
             .filter { !nearbyPlacesRequestedOnce.getAndSet(true) },
         ::maybeRequestNearbyPlaces
     )
 
-    private val searchQuery = MutableStateFlow("")
+    private val searchQuery = MutableStateFlow<InputQuery?>(null)
 
-    val places = combine(searchQuery, nearbyPlaces, ::makePlacesList)
+    val places = combine(
+        searchQuery.debounce(300),
+        nearbyPlaces,
+        ::makePlacesList
+    )
 
     init {
         viewModelScope.launch {
             reverseGeocodeResult
                 .collect { result ->
-                    Timber.w(" >>> viewModel.collect(): result=$result")
                     val address = result.toAddress()
                     when (address.type) {
                         Address.Type.SOURCE -> {
@@ -140,6 +145,10 @@ internal class TaxiOrderingViewModel @Inject constructor(
         _isMyLocationOnScreen.value = isMyLocationVisibleOnScreen
     }
 
+    fun findPlacesByText(text: String, addressType: Address.Type) {
+        searchQuery.value = InputQuery(text.trim(), addressType)
+    }
+
     fun findAddressByPosition(position: Position, source: Address.Source, type: Address.Type) {
         // skip geocoding if we receive coordinates from location provider but user has already selected address manually
         if (source == Address.Source.MY_LOCATION) {
@@ -149,13 +158,13 @@ internal class TaxiOrderingViewModel @Inject constructor(
             }
         }
         viewModelScope.launch(Dispatchers.Default) {
-            val query = GeoCodeQuery.AddressByLocation(
-                source = source,
-                position = position,
-                addressType = type
+            reverseGeocodeQuery.emit(
+                GeoCodeQuery.AddressByLocation(
+                    source = source,
+                    position = position,
+                    addressType = type
+                )
             )
-            Timber.w(" >>> findAddressByPosition.emit(): $query")
-            reverseGeocodeQuery.emit(query)
         }
     }
 
@@ -167,13 +176,13 @@ internal class TaxiOrderingViewModel @Inject constructor(
 
     fun onPlaceSelected(place: Place, type: Address.Type) {
         viewModelScope.launch(Dispatchers.Default) {
-            val query = GeoCodeQuery.AddressByPlace(
-                source = Address.Source.USER_SPECIFIED,
-                place = place,
-                addressType = type
+            reverseGeocodeQuery.emit(
+                GeoCodeQuery.AddressByPlace(
+                    source = Address.Source.USER_SPECIFIED,
+                    place = place,
+                    addressType = type
+                )
             )
-            Timber.w(" >>> onPlaceSelected.emit(): $query")
-            reverseGeocodeQuery.emit(query)
         }
     }
 
@@ -190,12 +199,19 @@ internal class TaxiOrderingViewModel @Inject constructor(
         }
     }
 
-    private fun makePlacesList(query: String, nearbyPlaces: List<Place>): List<Place> {
-        return if (query.isNotBlank()) {
-            emptyList()
-        } else {
-            nearbyPlaces
-        }
+    private suspend fun makePlacesList(query: InputQuery?, nearbyPlaces: List<Place>): List<Place> {
+        return query?.let {
+            if (it.text.isNotBlank()) {
+                try {
+                    geoCoder.geocode(query.text)
+                } catch (t: Throwable) {
+                    Timber.w("Error searching places: ${t.message}")
+                    emptyList()
+                }
+            } else {
+                nearbyPlaces
+            }
+        } ?: nearbyPlaces
     }
 
     private suspend fun reverseGeocode(query: GeoCodeQuery): GeoCodeResult {
@@ -211,7 +227,6 @@ internal class TaxiOrderingViewModel @Inject constructor(
             }
             null
         }
-        Timber.w(" >>> reverseGeocode(): result=\"$addressTitle\" query=$query")
         return when (query) {
             is GeoCodeQuery.AddressByLocation -> GeoCodeResult.AddressByLocation(query, addressTitle)
             is GeoCodeQuery.AddressByPlace -> GeoCodeResult.AddressByPlace(query, addressTitle ?: query.place.address)
@@ -238,8 +253,21 @@ internal class TaxiOrderingViewModel @Inject constructor(
         return routeResult?.result?.let {
             val routeDetails = orderManager.calculateRouteDetails(it)
 
-            val durationString = resourceProvider.getString(R.string.trip_duration, routeDetails.bestVariant.duration)
-            val costString = resourceProvider.getString(R.string.trip_cost, routeDetails.bestVariant.cost)
+            val durationStr = if (routeDetails.bestVariant.duration < 60) {
+                resources.getString(R.string.time_in_minutes, routeDetails.bestVariant.duration)
+            } else {
+                val hours = routeDetails.bestVariant.duration / 60
+                val minutes = routeDetails.bestVariant.duration % 60
+                buildString {
+                    append(resources.getString(R.string.time_in_hours, hours))
+                    if (minutes > 0) {
+                        append(" ")
+                        append(resources.getString(R.string.time_in_minutes, minutes))
+                    }
+                }
+            }
+            val durationString = resources.getString(R.string.trip_duration, durationStr)
+            val costString = resources.getString(R.string.trip_cost, routeDetails.bestVariant.cost)
             val infoWindowText = "$durationString\n$costString"
 
             val infoWindowBitmap = infoWindowGenerator.generate(infoWindowText)

@@ -57,7 +57,11 @@ internal class GoogleNearbyPlacesProvider @Inject constructor(
                         val title = it.place.name
                         val address = it.place.address
                         if (position != null && (!title.isNullOrBlank() || !address.isNullOrBlank())) {
-                            Place(position, title ?: "", address ?: "")
+                            Place(
+                                position = position,
+                                title = title ?: "",
+                                address = address ?: ""
+                            )
                         } else {
                             null
                         }

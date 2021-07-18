@@ -7,6 +7,6 @@ internal interface GeoCoder {
 
     suspend fun reverseGeoCode(position: Position): String?
 
-    suspend fun search(query: String): List<Place>
+    suspend fun geocode(query: String): List<Place>
 
 }

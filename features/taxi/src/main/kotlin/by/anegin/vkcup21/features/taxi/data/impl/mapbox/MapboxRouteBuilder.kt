@@ -62,6 +62,7 @@ internal class MapboxRouteBuilder @Inject constructor(
                         response.body()?.let { body ->
                             val route = body.routes().firstOrNull()?.let {
                                 Route(
+                                    source = source,
                                     destination = destination,
                                     direction = it
                                 )

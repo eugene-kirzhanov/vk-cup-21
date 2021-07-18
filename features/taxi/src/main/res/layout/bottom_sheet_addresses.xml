@@ -117,10 +117,24 @@
                     android:hint="@string/address.source_hint"
                     android:inputType="text"
                     android:padding="0dp"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="32dp"
                     android:textColor="@color/input_text"
                     android:textColorHint="@color/input_hint_text" />
 
             </com.google.android.material.textfield.TextInputLayout>
+
+            <ImageButton
+                android:id="@+id/button_clear_source_address"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@null"
+                android:scaleType="centerInside"
+                android:src="@drawable/ic_input_clear"
+                app:layout_constraintBottom_toBottomOf="@id/input_source_address"
+                app:layout_constraintEnd_toEndOf="@id/input_source_address"
+                app:layout_constraintTop_toTopOf="@id/input_source_address" />
 
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/input_destination_address"
@@ -143,10 +157,24 @@
                     android:hint="@string/address.destination_hint"
                     android:inputType="text"
                     android:padding="0dp"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="32dp"
                     android:textColor="@color/input_text"
                     android:textColorHint="@color/input_hint_text" />
 
             </com.google.android.material.textfield.TextInputLayout>
+
+            <ImageButton
+                android:id="@+id/button_clear_destination_address"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@null"
+                android:scaleType="centerInside"
+                android:src="@drawable/ic_input_clear"
+                app:layout_constraintBottom_toBottomOf="@id/input_destination_address"
+                app:layout_constraintEnd_toEndOf="@id/input_destination_address"
+                app:layout_constraintTop_toTopOf="@id/input_destination_address" />
 
             <View
                 android:id="@+id/source_address_overlay"
