@@ -9,6 +9,7 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import kotlin.math.max
+import kotlin.random.Random
 
 internal class DummyOrderManager @Inject constructor(
     @DefaultDispatcher private val defaultDispatcher: CoroutineDispatcher
@@ -22,13 +23,16 @@ internal class DummyOrderManager @Inject constructor(
     }
 
     private fun calculateVariants(direction: DirectionsRoute): List<RouteDetails.Variant> {
-        return RouteDetails.Category.values().map { category ->
+        return RouteDetails.Category.values().mapIndexed { index, category ->
             val costInRubles = calculateCost(direction.distance(), category)
             val durationInMinutes = calculateDuration(direction.duration(), category)
+            val waitingTime = calculateWaitingTime(category)
             RouteDetails.Variant(
+                id = index,
                 category = category,
                 cost = costInRubles,
-                duration = durationInMinutes
+                duration = durationInMinutes,
+                waitingTime = waitingTime
             )
         }
     }
@@ -56,6 +60,14 @@ internal class DummyOrderManager @Inject constructor(
             RouteDetails.Category.UNMANNED -> durationInMinutes * 1.2
         }
         return max(3, duration.toInt())
+    }
+
+    private fun calculateWaitingTime(category: RouteDetails.Category): Int {
+        return when (category) {
+            RouteDetails.Category.FAST -> Random.nextInt(3, 6)
+            RouteDetails.Category.REGULAR -> Random.nextInt(5, 7)
+            RouteDetails.Category.UNMANNED -> Random.nextInt(5, 10)
+        }
     }
 
 }

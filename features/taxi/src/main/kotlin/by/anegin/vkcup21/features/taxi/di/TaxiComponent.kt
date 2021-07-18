@@ -13,7 +13,8 @@ import dagger.Component
     ],
     modules = [
         RootModule::class,
-        TaxiFeatureModule::class
+        TaxiFeatureModule::class,
+        TaxiMapModule::class
     ]
 )
 internal interface TaxiComponent {

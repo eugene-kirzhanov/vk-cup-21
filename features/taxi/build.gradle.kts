@@ -50,10 +50,6 @@ dependencies {
 
     implementation(Deps.PlayServices.location)
 
-    implementation(Deps.OkHttp3.okhttp)
-    implementation(Deps.Retrofit2.retrofit)
-    implementation(Deps.Retrofit2.gsonConverter)
-
     implementation(Deps.MapBox.sdk)
     implementation(Deps.MapBox.turf)
     implementation(Deps.MapBox.services)
@@ -64,7 +60,6 @@ dependencies {
         exclude(group = "com.mapbox.mapboxsdk", module = "mapbox-android-telemetry")
     }
     implementation(Deps.MapBox.annotationPlugin)
-    implementation(Deps.MapBox.localizationPlugin)
 
     implementation(Deps.GoogleLibs.places)
     // Use explicit version of Volley library which is not migrated out of Jcenter until Places library is updated

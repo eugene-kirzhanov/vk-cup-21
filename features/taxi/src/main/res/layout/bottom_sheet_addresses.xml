@@ -7,9 +7,10 @@
     android:layout_height="match_parent"
     android:background="@android:color/white"
     android:clipChildren="false"
+    android:theme="@style/Theme.VkCup.Taxi"
     app:behavior_hideable="false"
     app:behavior_peekHeight="@dimen/bottom_sheet_peek_height"
-    app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior">
+    app:layout_behavior="by.anegin.vkcup21.features.taxi.ui.order.util.LockableBottomSheetBehavior">
 
     <ImageButton
         android:id="@+id/button_close_addresses"
@@ -205,33 +206,65 @@
         android:layout_marginStart="12dp"
         android:layout_marginTop="12dp"
         android:layout_marginEnd="12dp"
-        android:alpha="0"
         android:insetTop="0dp"
         android:insetBottom="0dp"
         android:letterSpacing="-0.0013"
-        android:scaleX="0"
-        android:scaleY="0"
         android:text="@string/common.done"
         android:textAllCaps="false"
         android:textSize="17sp"
         app:cornerRadius="10dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/addresses_container"
-        tools:alpha="1"
-        tools:scaleX="1"
-        tools:scaleY="1" />
+        app:layout_constraintTop_toBottomOf="@id/addresses_container" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recycler_view_places"
         android:layout_width="0dp"
         android:layout_height="0dp"
+        android:alpha="0"
         android:overScrollMode="never"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/addresses_container"
+        tools:alpha="1"
         tools:itemCount="5"
         tools:listitem="@layout/listitem_place" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recycler_view_variants"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:overScrollMode="never"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/addresses_container"
+        tools:itemCount="3"
+        tools:listitem="@layout/listitem_route_variant" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/button_make_order"
+        android:layout_width="0dp"
+        android:layout_height="44dp"
+        android:layout_marginStart="12dp"
+        android:layout_marginEnd="12dp"
+        android:insetTop="0dp"
+        android:insetBottom="0dp"
+        android:letterSpacing="-0.0013"
+        android:text="@string/order.make_order_for_amount"
+        android:textAllCaps="false"
+        android:textSize="17sp"
+        app:cornerRadius="10dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/recycler_view_variants" />
+
+    <androidx.constraintlayout.widget.Group
+        android:id="@+id/group_order_variants"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        app:constraint_referenced_ids="recycler_view_variants,button_make_order"
+        tools:visibility="visible" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

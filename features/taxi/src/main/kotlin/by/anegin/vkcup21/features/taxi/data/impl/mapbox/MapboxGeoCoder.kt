@@ -7,7 +7,7 @@ import by.anegin.vkcup21.features.taxi.data.GeoCoder
 import by.anegin.vkcup21.features.taxi.data.LocationProvider
 import by.anegin.vkcup21.features.taxi.data.models.Place
 import by.anegin.vkcup21.features.taxi.data.models.Position
-import by.anegin.vkcup21.taxi.R
+import by.anegin.vkcup21.features.taxi.di.MapboxAccessToken
 import com.mapbox.search.MapboxSearchSdk
 import com.mapbox.search.QueryType
 import com.mapbox.search.ResponseInfo
@@ -32,18 +32,19 @@ import kotlin.coroutines.resumeWithException
 internal class MapboxGeoCoder @Inject constructor(
     private val context: Context,
     private val locationProvider: LocationProvider,
+    @MapboxAccessToken private val mapboxAccessToken: String,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher
 ) : GeoCoder {
 
     companion object {
         private val isSearchEngineInitialized = AtomicBoolean(false)
 
-        private fun ensureSearchSdkInitialized(context: Context, locationProvider: LocationProvider) {
+        private fun ensureSearchSdkInitialized(context: Context, mapboxAccessToken: String, locationProvider: LocationProvider) {
             if (!isSearchEngineInitialized.getAndSet(true)) {
                 (context.applicationContext as Application).apply {
                     MapboxSearchSdk.initialize(
                         this,
-                        context.getString(R.string.mapbox_access_token),
+                        mapboxAccessToken,
                         {
                             // proxy app LocationProvider data to Mapbox LocationProvider
                             locationProvider.location.value?.toPoint()
@@ -56,7 +57,7 @@ internal class MapboxGeoCoder @Inject constructor(
 
     override suspend fun reverseGeoCode(position: Position): String? = withContext(ioDispatcher) {
         suspendCancellableCoroutine { continuation ->
-            ensureSearchSdkInitialized(context, locationProvider)
+            ensureSearchSdkInitialized(context, mapboxAccessToken, locationProvider)
 
             val reverseGeocodingSearchEngine = MapboxSearchSdk.createReverseGeocodingSearchEngine()
 
@@ -89,7 +90,7 @@ internal class MapboxGeoCoder @Inject constructor(
 
     override suspend fun geocode(query: String): List<Place> = withContext(ioDispatcher) {
 
-        ensureSearchSdkInitialized(context, locationProvider)
+        ensureSearchSdkInitialized(context, mapboxAccessToken, locationProvider)
 
         val searchEngine = MapboxSearchSdk.createSearchEngine()
 

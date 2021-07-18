@@ -16,6 +16,11 @@ import by.anegin.vkcup21.features.taxi.data.models.GeoCodeResult
 import by.anegin.vkcup21.features.taxi.data.models.Place
 import by.anegin.vkcup21.features.taxi.data.models.Position
 import by.anegin.vkcup21.features.taxi.data.models.Route
+import by.anegin.vkcup21.features.taxi.data.models.RouteDetails
+import by.anegin.vkcup21.features.taxi.ui.order.models.InputQuery
+import by.anegin.vkcup21.features.taxi.ui.order.models.RouteVariant
+import by.anegin.vkcup21.features.taxi.ui.order.models.toRouteVariant
+import by.anegin.vkcup21.features.taxi.ui.order.util.DateTimeUtil
 import by.anegin.vkcup21.features.taxi.ui.order.util.InfoWindowGenerator
 import by.anegin.vkcup21.taxi.R
 import kotlinx.coroutines.CancellationException
@@ -86,8 +91,16 @@ internal class TaxiOrderingViewModel @Inject constructor(
     val route = combine(sourcePosition, destinationPosition, ::buildRoute)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
-    val infoWindow = route
-        .map(::makeInfoWindow)
+    private val routeDetails = route
+        .map(::calculateRouteDetails)
+
+    val routeInfoWindow = routeDetails
+        .map(::makeRouteInfoWindow)
+
+    private val _selectedRouteVariant = MutableStateFlow<RouteVariant?>(null)
+    val selectedRouteVariant = _selectedRouteVariant.asStateFlow()
+
+    val routeVariants = combine(routeDetails, _selectedRouteVariant, ::makeRouteVariantsList)
 
     private val nearbyPlacesRequestedOnce = AtomicBoolean(false)
     private val nearbyPlaces = combine(
@@ -108,6 +121,9 @@ internal class TaxiOrderingViewModel @Inject constructor(
         ::makePlacesList
     )
 
+    private val _isInRouteDetailsMode = MutableStateFlow(false)
+    val isInRouteDetailsMode = _isInRouteDetailsMode.asStateFlow()
+
     init {
         viewModelScope.launch {
             reverseGeocodeResult
@@ -123,6 +139,18 @@ internal class TaxiOrderingViewModel @Inject constructor(
                             if (address.source != Address.Source.MY_LOCATION) {
                                 _destinationAddress.emit(address)
                             }
+                        }
+                    }
+                }
+        }
+        viewModelScope.launch {
+            routeDetails
+                .collect { routeDetails ->
+                    routeDetails?.let {
+                        if (_selectedRouteVariant.value == null) {
+                            // select middle variant by default
+                            _selectedRouteVariant.value =
+                                it.variants.getOrNull(it.variants.size / 2)?.toRouteVariant(resources, true)
                         }
                     }
                 }
@@ -184,6 +212,14 @@ internal class TaxiOrderingViewModel @Inject constructor(
                 )
             )
         }
+    }
+
+    fun toggleRouteDetailsMode() {
+        _isInRouteDetailsMode.value = !_isInRouteDetailsMode.value
+    }
+
+    fun onRouteVariantSelected(variant: RouteVariant?) {
+        this._selectedRouteVariant.value = variant
     }
 
     private suspend fun maybeRequestNearbyPlaces(isLocationPermissionGranted: Boolean, myLocation: Position?): List<Place> {
@@ -249,31 +285,36 @@ internal class TaxiOrderingViewModel @Inject constructor(
         }
     }
 
-    private suspend fun makeInfoWindow(routeResult: RouteResult?): Pair<Position, Bitmap>? {
+    private suspend fun calculateRouteDetails(routeResult: RouteResult?): RouteDetails? {
         return routeResult?.result?.let {
-            val routeDetails = orderManager.calculateRouteDetails(it)
+            orderManager.calculateRouteDetails(it)
+        }
+    }
 
-            val durationStr = if (routeDetails.bestVariant.duration < 60) {
-                resources.getString(R.string.time_in_minutes, routeDetails.bestVariant.duration)
-            } else {
-                val hours = routeDetails.bestVariant.duration / 60
-                val minutes = routeDetails.bestVariant.duration % 60
-                buildString {
-                    append(resources.getString(R.string.time_in_hours, hours))
-                    if (minutes > 0) {
-                        append(" ")
-                        append(resources.getString(R.string.time_in_minutes, minutes))
-                    }
-                }
-            }
-            val durationString = resources.getString(R.string.trip_duration, durationStr)
-            val costString = resources.getString(R.string.trip_cost, routeDetails.bestVariant.cost)
+    private suspend fun makeRouteInfoWindow(routeDetails: RouteDetails?): Pair<Position, Bitmap>? {
+        return routeDetails?.let {
+            val duration = DateTimeUtil.minutesToHumanReadableTime(resources, routeDetails.bestVariant.duration)
+            val durationString = resources.getString(R.string.trip_duration, duration)
+
+            val cost = resources.getString(R.string.common_cost_in_rubles, routeDetails.bestVariant.cost)
+            val costString = resources.getString(R.string.trip_cost, cost)
+
             val infoWindowText = "$durationString\n$costString"
 
             val infoWindowBitmap = infoWindowGenerator.generate(infoWindowText)
 
-            routeResult.destination to infoWindowBitmap
+            routeDetails.route.destination to infoWindowBitmap
         }
+    }
+
+    private fun makeRouteVariantsList(routeDetails: RouteDetails?, selectedVariant: RouteVariant?): List<RouteVariant> {
+        val selectedVariantId = selectedVariant?.id
+            ?: routeDetails?.variants?.getOrNull(routeDetails.variants.size / 2)?.id
+        return routeDetails?.variants
+            ?.map {
+                it.toRouteVariant(resources, isSelected = it.id == selectedVariantId)
+            }
+            ?: emptyList()
     }
 
     data class RouteResult(

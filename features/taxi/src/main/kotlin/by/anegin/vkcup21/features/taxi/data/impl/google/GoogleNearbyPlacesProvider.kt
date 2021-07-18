@@ -4,8 +4,8 @@ import android.content.Context
 import by.anegin.vkcup21.di.IoDispatcher
 import by.anegin.vkcup21.features.taxi.data.NearbyPlacesProvider
 import by.anegin.vkcup21.features.taxi.data.models.Place
+import by.anegin.vkcup21.features.taxi.di.GoogleApiKey
 import by.anegin.vkcup21.features.taxi.util.LocationUtil
-import by.anegin.vkcup21.taxi.R
 import com.google.android.libraries.places.api.Places
 import com.google.android.libraries.places.api.net.FindCurrentPlaceRequest
 import kotlinx.coroutines.CoroutineDispatcher
@@ -20,34 +20,37 @@ private typealias GooglePlaceType = com.google.android.libraries.places.api.mode
 
 internal class GoogleNearbyPlacesProvider @Inject constructor(
     private val context: Context,
+    @GoogleApiKey private val googleApiKey: String,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher
 ) : NearbyPlacesProvider {
 
     companion object {
         private val isPlacesInitialized = AtomicBoolean(false)
 
-        private fun ensurePlacesInitialized(context: Context) {
+        private fun ensurePlacesInitialized(context: Context, googleApiKey: String) {
             if (!isPlacesInitialized.getAndSet(true)) {
-                Places.initialize(context, context.getString(R.string.google_api_key))
+                Places.initialize(context, googleApiKey)
             }
         }
     }
 
     override suspend fun findNearbyPlaces(limit: Int): List<Place> = withContext(ioDispatcher) {
-        ensurePlacesInitialized(context)
-
-        val request = FindCurrentPlaceRequest.newInstance(
-            listOf(
-                GooglePlaceField.LAT_LNG,
-                GooglePlaceField.NAME,
-                GooglePlaceField.ADDRESS,
-                GooglePlaceField.TYPES,
-            )
-        )
         if (LocationUtil.isLocationPermissionGranted(context)) {
             try {
+                ensurePlacesInitialized(context, googleApiKey)
+
+                val request = FindCurrentPlaceRequest.newInstance(
+                    listOf(
+                        GooglePlaceField.LAT_LNG,
+                        GooglePlaceField.NAME,
+                        GooglePlaceField.ADDRESS,
+                        GooglePlaceField.TYPES,
+                    )
+                )
+
                 val placesClient = Places.createClient(context)
                 val response = placesClient.findCurrentPlace(request).await()
+
                 return@withContext response.placeLikelihoods
                     .sortedBy { it.likelihood }
                     .filter { it.place.types?.contains(GooglePlaceType.POINT_OF_INTEREST) == true }

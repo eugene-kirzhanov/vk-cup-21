@@ -1,5 +1,6 @@
 package by.anegin.vkcup21.internal.ui.main
 
+import android.graphics.Color
 import android.os.Bundle
 import android.view.View
 import androidx.fragment.app.Fragment
@@ -24,7 +25,7 @@ internal class FeatureSelectionFragment : Fragment(R.layout.fragment_feature_sel
     private val binding by viewBinding(FragmentFeatureSelectionBinding::bind)
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        appUiController.setupSystemBars(statusBar = SystemBar.Default, navigationBar = SystemBar.Default)
+        appUiController.setupSystemBars(statusBar = SystemBar.Default, navigationBar = SystemBar.Colored(Color.WHITE))
 
         binding.buttonShowTaxiFeature.setOnClickListener {
             appNavigator.navigateTo(FeatureSelectionFragmentDirections.toTaxiFeature())

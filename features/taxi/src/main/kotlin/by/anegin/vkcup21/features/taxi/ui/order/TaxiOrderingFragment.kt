@@ -8,8 +8,6 @@ import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.View
-import android.view.View.INVISIBLE
-import android.view.View.VISIBLE
 import android.view.ViewGroup
 import android.view.WindowManager
 import androidx.activity.OnBackPressedCallback
@@ -40,6 +38,10 @@ import by.anegin.vkcup21.features.taxi.data.models.Address
 import by.anegin.vkcup21.features.taxi.data.models.Position
 import by.anegin.vkcup21.features.taxi.data.models.Route
 import by.anegin.vkcup21.features.taxi.di.DaggerTaxiComponent
+import by.anegin.vkcup21.features.taxi.di.MapboxAccessToken
+import by.anegin.vkcup21.features.taxi.ui.order.adapter.PlacesAdapter
+import by.anegin.vkcup21.features.taxi.ui.order.adapter.RouteVariantsAdapter
+import by.anegin.vkcup21.features.taxi.ui.order.util.LockableBottomSheetBehavior
 import by.anegin.vkcup21.features.taxi.ui.order.util.VerticalSpacingItemDecoration
 import by.anegin.vkcup21.features.taxi.util.LocationUtil
 import by.anegin.vkcup21.taxi.BuildConfig
@@ -65,7 +67,6 @@ import com.mapbox.mapboxsdk.plugins.annotation.OnSymbolDragListener
 import com.mapbox.mapboxsdk.plugins.annotation.Symbol
 import com.mapbox.mapboxsdk.plugins.annotation.SymbolManager
 import com.mapbox.mapboxsdk.plugins.annotation.SymbolOptions
-import com.mapbox.mapboxsdk.plugins.localization.LocalizationPlugin
 import com.mapbox.mapboxsdk.style.layers.LineLayer
 import com.mapbox.mapboxsdk.style.layers.Property
 import com.mapbox.mapboxsdk.style.layers.Property.ICON_ROTATION_ALIGNMENT_VIEWPORT
@@ -82,16 +83,16 @@ internal class TaxiOrderingFragment : Fragment(R.layout.fragment_taxi_ordering) 
 
         private const val IMAGE_SOURCE_ADDRESS_PIN = "image-source-address-pin"
         private const val IMAGE_DESTINATION_ADDRESS_PIN = "image-destination-address-pin"
-        private const val IMAGE_INFO_WINDOW = "image-info-window"
+        private const val IMAGE_ROUTE_INFO_WINDOW = "image-info-window"
 
         private const val ROUTE_LAYER_ID = "route-layer-id"
         private const val ROUTE_SOURCE_ID = "route-source-id"
 
         private val isMapboxInitialized = AtomicBoolean(false)
 
-        private fun ensureMapboxInitialized(context: Context) {
+        private fun ensureMapboxInitialized(context: Context, mapboxAccessToken: String) {
             if (!isMapboxInitialized.getAndSet(true)) {
-                Mapbox.getInstance(context, context.getString(R.string.mapbox_access_token))
+                Mapbox.getInstance(context, mapboxAccessToken)
                 Mapbox.getTelemetry()?.setDebugLoggingEnabled(BuildConfig.DEBUG)
             }
         }
@@ -106,6 +107,10 @@ internal class TaxiOrderingFragment : Fragment(R.layout.fragment_taxi_ordering) 
     @Inject
     lateinit var viewModelFactory: ViewModelProvider.Factory
 
+    @Inject
+    @MapboxAccessToken
+    lateinit var mapboxAccessToken: String
+
     private val viewModel by viewModels<TaxiOrderingViewModel> { viewModelFactory }
 
     private val binding by viewBinding(FragmentTaxiOrderingBinding::class.java)
@@ -117,13 +122,13 @@ internal class TaxiOrderingFragment : Fragment(R.layout.fragment_taxi_ordering) 
 
     private var sourceAddressMarker: Symbol? = null
     private var destinationAddressMarker: Symbol? = null
-    private var isSourceAddressMarkerDragged = false
-    private var isDestinationAddressMarkerDragged = false
+    private var isSourceAddressMarkerPlaced = false
+    private var isDestinationAddressMarkerPlaced = false
 
     private var infoWindow: Symbol? = null
-    private var infoWindowImageAdded = false
+    private var routeInfoWindowImageAdded = false
 
-    private var bottomSheetBehavior: BottomSheetBehavior<*>? = null
+    private var bottomSheetBehavior: LockableBottomSheetBehavior<*>? = null
     private var bottomSheetPreviousState = BottomSheetBehavior.STATE_COLLAPSED
 
     private var pendingAddressTypeForFocus: Address.Type? = null
@@ -139,7 +144,7 @@ internal class TaxiOrderingFragment : Fragment(R.layout.fragment_taxi_ordering) 
             .build()
             .injectTaxiOrderingFragment(this)
 
-        ensureMapboxInitialized(context)
+        ensureMapboxInitialized(context, mapboxAccessToken)
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -189,10 +194,17 @@ internal class TaxiOrderingFragment : Fragment(R.layout.fragment_taxi_ordering) 
 
     // ===
 
-    private inner class AddressTextWatcher(private val addressType: Address.Type) : TextWatcher {
+    private inner class AddressTextWatcher(
+        private val addressType: Address.Type
+    ) : TextWatcher {
+
+        var isEnabled = true
+
         override fun afterTextChanged(s: Editable?) {
-            viewModel.findPlacesByText(s?.toString().orEmpty(), addressType)
-            updateClearInputButtonsState()
+            if (isEnabled) {
+                viewModel.findPlacesByText(s?.toString().orEmpty(), addressType)
+                updateClearInputButtonsState()
+            }
         }
 
         override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
@@ -226,18 +238,22 @@ internal class TaxiOrderingFragment : Fragment(R.layout.fragment_taxi_ordering) 
             viewLifecycleOwner,
             object : OnBackPressedCallback(true) {
                 override fun handleOnBackPressed() {
-                    if (bottomSheetBehavior?.state == BottomSheetBehavior.STATE_EXPANDED) {
-                        setInputAllowed(false)
-                        bottomSheetBehavior?.state = BottomSheetBehavior.STATE_COLLAPSED
-                    } else {
-                        appNavigator.navigateUp()
+                    when {
+                        bottomSheetBehavior?.state == BottomSheetBehavior.STATE_EXPANDED -> {
+                            setInputAllowed(false)
+                            bottomSheetBehavior?.state = BottomSheetBehavior.STATE_COLLAPSED
+                        }
+                        viewModel.isInRouteDetailsMode.value -> {
+                            viewModel.toggleRouteDetailsMode()
+                        }
+                        else -> appNavigator.navigateUp()
                     }
                 }
             }
         )
 
         val bottomSheetLayoutParams = binding.bottomSheetAddressess.root.layoutParams as? CoordinatorLayout.LayoutParams
-        bottomSheetBehavior = bottomSheetLayoutParams?.behavior as? BottomSheetBehavior<*>
+        bottomSheetBehavior = bottomSheetLayoutParams?.behavior as? LockableBottomSheetBehavior<*>
         bottomSheetBehavior?.addBottomSheetCallback(object : BottomSheetBehavior.BottomSheetCallback() {
             override fun onSlide(bottomSheet: View, slideOffset: Float) {
                 updateBottomSheetUi(slideOffset)
@@ -277,11 +293,17 @@ internal class TaxiOrderingFragment : Fragment(R.layout.fragment_taxi_ordering) 
             sourceAddressOverlay.setOnClickListener {
                 pendingAddressTypeForFocus = Address.Type.SOURCE
                 textAddressesTitle.setText(R.string.address_source_hint)
+                if (viewModel.isInRouteDetailsMode.value) {
+                    viewModel.toggleRouteDetailsMode()
+                }
                 bottomSheetBehavior?.state = BottomSheetBehavior.STATE_EXPANDED
             }
             destinationAddressOverlay.setOnClickListener {
                 pendingAddressTypeForFocus = Address.Type.DESTINATION
                 textAddressesTitle.setText(R.string.address_destination_hint)
+                if (viewModel.isInRouteDetailsMode.value) {
+                    viewModel.toggleRouteDetailsMode()
+                }
                 bottomSheetBehavior?.state = BottomSheetBehavior.STATE_EXPANDED
             }
 
@@ -295,6 +317,12 @@ internal class TaxiOrderingFragment : Fragment(R.layout.fragment_taxi_ordering) 
             }
             buttonClearDestinationAddress.setOnClickListener {
                 editDestinationAddress.setText("")
+            }
+
+            buttonDone.setOnClickListener {
+                if (!viewModel.isInRouteDetailsMode.value) {
+                    viewModel.toggleRouteDetailsMode()
+                }
             }
         }
 
@@ -316,22 +344,37 @@ internal class TaxiOrderingFragment : Fragment(R.layout.fragment_taxi_ordering) 
             moveCameraToMyLocation()
         }
 
-        val placesAdapter = PlacesAdapter { place ->
-            val currentAddressType = if (binding.bottomSheetAddressess.editSourceAddress.isFocused) {
-                Address.Type.SOURCE
-            } else {
-                Address.Type.DESTINATION
-            }
-            awaitingRouteAfterSelectingPlace = true
-            viewModel.onPlaceSelected(place, currentAddressType)
-        }
         binding.bottomSheetAddressess.recyclerViewPlaces.apply {
             layoutManager = LinearLayoutManager(context)
-            adapter = placesAdapter
+
+            adapter = PlacesAdapter { place ->
+                val currentAddressType = if (binding.bottomSheetAddressess.editSourceAddress.isFocused) {
+                    Address.Type.SOURCE
+                } else {
+                    Address.Type.DESTINATION
+                }
+                awaitingRouteAfterSelectingPlace = true
+                viewModel.onPlaceSelected(place, currentAddressType)
+            }
+
             addItemDecoration(
                 VerticalSpacingItemDecoration(
                     topSpacing = 18.dp,
                     bottomSpacing = 18.dp + systemBarInsets.bottom
+                )
+            )
+        }
+
+        binding.bottomSheetAddressess.recyclerViewVariants.apply {
+            layoutManager = LinearLayoutManager(context)
+
+            adapter = RouteVariantsAdapter { variant ->
+                viewModel.onRouteVariantSelected(variant)
+            }
+
+            addItemDecoration(
+                VerticalSpacingItemDecoration(
+                    bottomSpacing = 18.dp
                 )
             )
         }
@@ -356,49 +399,49 @@ internal class TaxiOrderingFragment : Fragment(R.layout.fragment_taxi_ordering) 
         viewModel.sourceAddress.observe(viewLifecycleOwner) { address ->
             val title = address?.title.orEmpty()
             binding.bottomSheetAddressess.editSourceAddress.apply {
-                removeTextChangedListener(sourceAddressChangeListener)
+                sourceAddressChangeListener.isEnabled = false
                 setText(title)
                 setSelection(title.length)
-                addTextChangedListener(sourceAddressChangeListener)
+                sourceAddressChangeListener.isEnabled = true
             }
             updateClearInputButtonsState()
             address?.let {
                 maybeUpdateSourceAddressMarkerByMyLocation(it.position)
                 if (it.source == Address.Source.USER_SPECIFIED) {
-                    isSourceAddressMarkerDragged = true
+                    isSourceAddressMarkerPlaced = true
                 }
             }
         }
         viewModel.destinationAddress.observe(viewLifecycleOwner) { address ->
             val title = address?.title.orEmpty()
             binding.bottomSheetAddressess.editDestinationAddress.apply {
-                removeTextChangedListener(destinationAddressChangeListener)
+                destinationAddressChangeListener.isEnabled = false
                 setText(title)
                 setSelection(title.length)
-                addTextChangedListener(destinationAddressChangeListener)
+                destinationAddressChangeListener.isEnabled = true
             }
             updateClearInputButtonsState()
             address?.let {
                 maybeUpdateDestinationAddressMarkerByMyLocation(it.position)
                 if (it.source == Address.Source.USER_SPECIFIED) {
-                    isDestinationAddressMarkerDragged = true
+                    isDestinationAddressMarkerPlaced = true
                 }
             }
         }
 
         viewModel.myLocation.observe(viewLifecycleOwner) { myLocation ->
             if (map != null && myLocation != null) {
-                if (!isDestinationAddressMarkerDragged) {
+                if (!isDestinationAddressMarkerPlaced) {
                     maybeUpdateDestinationAddressMarkerByMyLocation(myLocation)
                 }
-                if (!isSourceAddressMarkerDragged) {
+                if (!isSourceAddressMarkerPlaced) {
                     maybeUpdateSourceAddressMarkerByMyLocation(myLocation)
                 }
             }
         }
 
         viewModel.route.observe(viewLifecycleOwner) { route ->
-            updateDoneButtonState(isRouteAvailable = route?.result != null)
+            updateBottomSheetPeekHeight()
 
             map?.getStyle { style ->
                 val routeGeoJson: GeoJsonSource? = style.getSourceAs(ROUTE_SOURCE_ID)
@@ -420,10 +463,34 @@ internal class TaxiOrderingFragment : Fragment(R.layout.fragment_taxi_ordering) 
             }
         }
 
-        viewModel.infoWindow.observe(viewLifecycleOwner, observer = ::showInfoWindow)
-
         viewModel.places.observe(viewLifecycleOwner) { places ->
             (binding.bottomSheetAddressess.recyclerViewPlaces.adapter as? PlacesAdapter)?.submitList(places)
+        }
+
+        viewModel.routeInfoWindow.observe(viewLifecycleOwner, observer = ::showRouteInfoWindow)
+
+        viewModel.routeVariants.observe(viewLifecycleOwner) { routeVariants ->
+            (binding.bottomSheetAddressess.recyclerViewVariants.adapter as? RouteVariantsAdapter)?.submitList(routeVariants)
+        }
+        viewModel.selectedRouteVariant.observe(viewLifecycleOwner) { selectedVariant ->
+            selectedVariant?.let {
+                binding.bottomSheetAddressess.buttonMakeOrder.text = getString(R.string.order_make_order_for_amount, it.cost)
+            }
+        }
+
+        viewModel.isInRouteDetailsMode.observe(viewLifecycleOwner) { isInRouteDetailsMode ->
+            binding.bottomSheetAddressess.apply {
+                if (isInRouteDetailsMode) {
+                    bottomSheetBehavior?.isLocked = true
+                    groupOrderVariants.isVisible = true
+                    recyclerViewPlaces.isVisible = false
+                } else {
+                    bottomSheetBehavior?.isLocked = false
+                    groupOrderVariants.isVisible = false
+                    recyclerViewPlaces.isVisible = true
+                }
+            }
+            updateBottomSheetPeekHeight()
         }
     }
 
@@ -460,17 +527,9 @@ internal class TaxiOrderingFragment : Fragment(R.layout.fragment_taxi_ordering) 
                 scaleY = offsetWithTreshold
             }
 
-            val doneButtonState = if (viewModel.route.value?.result != null) 1f - slideOffset else 0f
-            buttonDone.apply {
-                alpha = doneButtonState
-                scaleX = doneButtonState
-                scaleY = doneButtonState
-                if (alpha == 0f && visibility != INVISIBLE) {
-                    visibility = INVISIBLE
-                } else if (alpha > 0f && visibility != VISIBLE) {
-                    visibility = VISIBLE
-                }
-            }
+            buttonDone.isVisible = viewModel.route.value?.result != null
+                && slideOffset == 0f
+                && !viewModel.isInRouteDetailsMode.value
 
             recyclerViewPlaces.alpha = offsetWithTreshold
         }
@@ -534,16 +593,6 @@ internal class TaxiOrderingFragment : Fragment(R.layout.fragment_taxi_ordering) 
                 renderMode = RenderMode.COMPASS
             }
 
-            LocalizationPlugin(binding.mapView, map, loadedStyle).apply {
-                matchMapLanguageWithDeviceDefault()
-                map.addOnCameraIdleListener {
-                    matchMapLanguageWithDeviceDefault()
-                }
-                map.addOnCameraMoveCancelListener {
-                    matchMapLanguageWithDeviceDefault()
-                }
-            }
-
             updateMyLocationState(viewModel.isLocationPermissionGranted.value)
 
             // === setup route layer ===
@@ -575,9 +624,9 @@ internal class TaxiOrderingFragment : Fragment(R.layout.fragment_taxi_ordering) 
                 addDragListener(object : OnSymbolDragListener {
                     override fun onAnnotationDragStarted(annotation: Symbol) {
                         if (annotation.iconImage == IMAGE_SOURCE_ADDRESS_PIN) {
-                            isSourceAddressMarkerDragged = true
+                            isSourceAddressMarkerPlaced = true
                         } else if (annotation.iconImage == IMAGE_DESTINATION_ADDRESS_PIN) {
-                            isDestinationAddressMarkerDragged = true
+                            isDestinationAddressMarkerPlaced = true
                             removeInfoWindow()
                         }
                     }
@@ -594,7 +643,7 @@ internal class TaxiOrderingFragment : Fragment(R.layout.fragment_taxi_ordering) 
                             val position = Position(annotation.latLng.latitude, annotation.latLng.longitude)
                             viewModel.findAddressByPosition(position, Address.Source.USER_SPECIFIED, it)
 
-                            if (addressType == Address.Type.SOURCE && !isDestinationAddressMarkerDragged && viewModel.destinationAddress.value == null) {
+                            if (addressType == Address.Type.SOURCE && !isDestinationAddressMarkerPlaced && viewModel.destinationAddress.value == null) {
                                 viewModel.setDestinationAddressVisible()
                             }
                         }
@@ -699,11 +748,12 @@ internal class TaxiOrderingFragment : Fragment(R.layout.fragment_taxi_ordering) 
                     .withIconImage(IMAGE_SOURCE_ADDRESS_PIN)
                     .withIconAnchor(Property.ICON_ANCHOR_CENTER)
                     .withDraggable(true)
-            ).also {
+            )?.also {
                 this.sourceAddressMarker = it
                 updated = true
             }
         if (updated) {
+            isSourceAddressMarkerPlaced = true
             viewModel.findAddressByPosition(myLocation, Address.Source.MY_LOCATION, Address.Type.SOURCE)
         }
     }
@@ -724,11 +774,12 @@ internal class TaxiOrderingFragment : Fragment(R.layout.fragment_taxi_ordering) 
                     .withIconImage(IMAGE_DESTINATION_ADDRESS_PIN)
                     .withIconAnchor(Property.ICON_ANCHOR_BOTTOM)
                     .withDraggable(true)
-            ).also {
+            )?.also {
                 this.destinationAddressMarker = it
                 updated = true
             }
         if (updated) {
+            isDestinationAddressMarkerPlaced = true
             viewModel.findAddressByPosition(myLocation, Address.Source.MY_LOCATION, Address.Type.DESTINATION)
         }
     }
@@ -760,14 +811,18 @@ internal class TaxiOrderingFragment : Fragment(R.layout.fragment_taxi_ordering) 
             // restore text in input fields
             viewModel.sourceAddress.value?.let { address ->
                 binding.bottomSheetAddressess.editSourceAddress.apply {
+                    sourceAddressChangeListener.isEnabled = false
                     setText(address.title)
                     setSelection(address.title.length)
+                    sourceAddressChangeListener.isEnabled = true
                 }
             }
             viewModel.destinationAddress.value?.let { address ->
                 binding.bottomSheetAddressess.editDestinationAddress.apply {
+                    destinationAddressChangeListener.isEnabled = false
                     setText(address.title)
                     setSelection(address.title.length)
+                    destinationAddressChangeListener.isEnabled = true
                 }
             }
             activity?.currentFocus?.clearFocus()
@@ -776,31 +831,20 @@ internal class TaxiOrderingFragment : Fragment(R.layout.fragment_taxi_ordering) 
         updateClearInputButtonsState()
     }
 
-    private fun updateDoneButtonState(isRouteAvailable: Boolean) {
-        val (peekHeight, doneButtonAlpha) = if (isRouteAvailable) {
-            resources.getDimensionPixelSize(R.dimen.bottom_sheet_peek_height_with_button) to 1f
-        } else {
-            resources.getDimensionPixelSize(R.dimen.bottom_sheet_peek_height) to 0f
-        }
-        if (bottomSheetBehavior?.state == BottomSheetBehavior.STATE_COLLAPSED) {
-            bottomSheetBehavior?.setPeekHeight(peekHeight, true)
-            binding.bottomSheetAddressess.buttonDone.apply {
-                animate()
-                    .scaleX(doneButtonAlpha)
-                    .scaleY(doneButtonAlpha)
-                    .alpha(doneButtonAlpha)
-                    .setUpdateListener {
-                        if (alpha == 0f && visibility != INVISIBLE) {
-                            visibility = INVISIBLE
-                        } else if (alpha > 0f && visibility != VISIBLE) {
-                            visibility = VISIBLE
-                        }
-                    }
-                    .start()
+    private fun updateBottomSheetPeekHeight() {
+        val isRouteAvailable = viewModel.route.value?.result != null
+        val isInRouteDetailsMode = viewModel.isInRouteDetailsMode.value
+        val (peekHeight, isDoneButtonVisible) = if (isRouteAvailable) {
+            if (isInRouteDetailsMode) {
+                resources.getDimensionPixelSize(R.dimen.bottom_sheet_peek_height_with_route_variants) to false
+            } else {
+                resources.getDimensionPixelSize(R.dimen.bottom_sheet_peek_height_with_done_button) to true
             }
         } else {
-            bottomSheetBehavior?.peekHeight = peekHeight
+            resources.getDimensionPixelSize(R.dimen.bottom_sheet_peek_height) to false
         }
+        bottomSheetBehavior?.peekHeight = peekHeight
+        binding.bottomSheetAddressess.buttonDone.isVisible = isDoneButtonVisible
     }
 
     private fun updateClearInputButtonsState() {
@@ -814,24 +858,24 @@ internal class TaxiOrderingFragment : Fragment(R.layout.fragment_taxi_ordering) 
         }
     }
 
-    private fun showInfoWindow(infoWindowData: Pair<Position, Bitmap>?) {
+    private fun showRouteInfoWindow(routeInfoWindowData: Pair<Position, Bitmap>?) {
         infoWindow?.let { infoWindow ->
             symbolManager?.delete(infoWindow)
         }
         map?.getStyle { style ->
-            if (infoWindowImageAdded) {
-                infoWindowImageAdded = false
-                style.removeImage(IMAGE_INFO_WINDOW)
+            if (routeInfoWindowImageAdded) {
+                routeInfoWindowImageAdded = false
+                style.removeImage(IMAGE_ROUTE_INFO_WINDOW)
             }
 
-            infoWindowData?.let { (destination, infoWindowBitmap) ->
-                style.addImage(IMAGE_INFO_WINDOW, infoWindowBitmap)
-                infoWindowImageAdded = true
+            routeInfoWindowData?.let { (destination, infoWindowBitmap) ->
+                style.addImage(IMAGE_ROUTE_INFO_WINDOW, infoWindowBitmap)
+                routeInfoWindowImageAdded = true
 
                 infoWindow = symbolManager?.create(
                     SymbolOptions()
                         .withLatLng(destination.toLatLng())
-                        .withIconImage(IMAGE_INFO_WINDOW)
+                        .withIconImage(IMAGE_ROUTE_INFO_WINDOW)
                         .withIconAnchor(Property.ICON_ANCHOR_BOTTOM)
                         .withIconOffset(arrayOf(0f, -64f))
                 )
@@ -844,10 +888,10 @@ internal class TaxiOrderingFragment : Fragment(R.layout.fragment_taxi_ordering) 
             symbolManager?.delete(it)
         }
         infoWindow = null
-        if (infoWindowImageAdded) {
-            infoWindowImageAdded = false
+        if (routeInfoWindowImageAdded) {
+            routeInfoWindowImageAdded = false
             map?.getStyle {
-                it.removeImage(IMAGE_INFO_WINDOW)
+                it.removeImage(IMAGE_ROUTE_INFO_WINDOW)
             }
         }
     }

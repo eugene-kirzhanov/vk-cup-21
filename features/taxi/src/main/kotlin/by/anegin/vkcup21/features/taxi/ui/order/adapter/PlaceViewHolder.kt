@@ -1,4 +1,4 @@
-package by.anegin.vkcup21.features.taxi.ui.order
+package by.anegin.vkcup21.features.taxi.ui.order.adapter
 
 import android.view.ViewGroup
 import by.anegin.vkcup21.features.taxi.data.models.Place

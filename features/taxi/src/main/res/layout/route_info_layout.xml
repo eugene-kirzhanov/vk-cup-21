@@ -8,7 +8,8 @@
     android:paddingStart="42dp"
     android:paddingTop="36dp"
     android:paddingEnd="42dp"
-    android:paddingBottom="50dp">
+    android:paddingBottom="50dp"
+    android:theme="@style/Theme.VkCup.Taxi">
 
     <TextView
         android:id="@+id/text_info"

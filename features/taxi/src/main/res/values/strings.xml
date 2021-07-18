@@ -1,16 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="common.done">Done</string>
+    <string name="common.continue">Continue</string>
+
+    <string name="common.time_in_minutes">%d min</string>
+    <string name="common.time_in_hours">%d h</string>
+    <string name="common.cost_in_rubles">%d ₽</string>
+
     <string name="system.location_permission_rationale_title">Enable location access</string>
     <string name="system.location_permission_rationale_message">So we can easily find where you are on the map</string>
-    <string name="common.continue">Continue</string>
 
     <string name="address.source_hint">Source address</string>
     <string name="address.destination_hint">Destination address</string>
 
-    <string name="trip_duration">Travel time %s</string>
-    <string name="trip_cost">Price %d ₽</string>
-    <string name="time_in_minutes">%d min</string>
-    <string name="time_in_hours">%d h</string>
+    <string name="trip.duration">Trip time %s</string>
+    <string name="trip.cost">Price %s</string>
 
-    <string name="common.done">Done</string>
+    <string name="route.category_fast_title">Drive fast</string>
+    <string name="route.category_regular_title">See the beauty of the city</string>
+    <string name="route.category_unmanned_title">On autopilot</string>
+    <string name="route.info">%1$s on the way · %2$s waiting</string>
+
+    <string name="order.make_order_for_amount">Put order for %s</string>
 </resources>

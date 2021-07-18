@@ -1,11 +1,10 @@
 package by.anegin.vkcup21.features.taxi.data.impl.mapbox
 
-import android.content.Context
 import by.anegin.vkcup21.di.IoDispatcher
 import by.anegin.vkcup21.features.taxi.data.RouteBuilder
 import by.anegin.vkcup21.features.taxi.data.models.Position
 import by.anegin.vkcup21.features.taxi.data.models.Route
-import by.anegin.vkcup21.taxi.R
+import by.anegin.vkcup21.features.taxi.di.MapboxAccessToken
 import com.mapbox.api.directions.v5.DirectionsCriteria
 import com.mapbox.api.directions.v5.MapboxDirections
 import com.mapbox.api.directions.v5.models.DirectionsResponse
@@ -23,7 +22,7 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
 internal class MapboxRouteBuilder @Inject constructor(
-    private val context: Context,
+    @MapboxAccessToken private val mapboxAccessToken: String,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher
 ) : RouteBuilder {
 
@@ -49,7 +48,7 @@ internal class MapboxRouteBuilder @Inject constructor(
                 .overview(DirectionsCriteria.OVERVIEW_FULL)
                 .alternatives(true)
                 .profile(DirectionsCriteria.PROFILE_DRIVING)
-                .accessToken(context.getString(R.string.mapbox_access_token))
+                .accessToken(mapboxAccessToken)
                 .build()
 
             continuation.invokeOnCancellation {

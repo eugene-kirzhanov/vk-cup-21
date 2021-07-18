@@ -9,9 +9,11 @@ internal data class RouteDetails(
         ?: variants.first()
 
     data class Variant(
+        val id: Int,
         val category: Category,
         val cost: Int, // in rubles
-        val duration: Int // in minutes
+        val duration: Int, // in minutes
+        val waitingTime: Int // in minutes
     )
 
     enum class Category {

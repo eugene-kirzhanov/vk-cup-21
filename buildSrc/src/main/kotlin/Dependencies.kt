@@ -26,7 +26,7 @@ object Deps {
     object AndroidX {
         const val coreKtx = "androidx.core:core-ktx:1.7.0-alpha01"
         const val appCompat = "androidx.appcompat:appcompat:1.4.0-alpha03"
-        const val activity = "androidx.activity:activity-ktx:1.3.0-rc01"
+        const val activity = "androidx.activity:activity-ktx:1.3.0-rc02"
         const val fragment = "androidx.fragment:fragment-ktx:1.4.0-alpha04"
         const val constraintLayout = "androidx.constraintlayout:constraintlayout:2.1.0-beta02"
         const val preferences = "androidx.preference:preference:1.1.1"
@@ -73,27 +73,15 @@ object Deps {
     object PlayServices {
         const val basement = "com.google.android.gms:play-services-basement:17.6.0"
         const val location = "com.google.android.gms:play-services-location:18.0.0"
-
-    }
-
-    object OkHttp3 {
-        const val okhttp = "com.squareup.okhttp3:okhttp:3.14.9"
-    }
-
-    object Retrofit2 {
-        private const val version = "2.9.0"
-        const val retrofit = "com.squareup.retrofit2:retrofit:$version"
-        const val gsonConverter = "com.squareup.retrofit2:converter-gson:$version"
     }
 
     object MapBox {
         const val sdk = "com.mapbox.mapboxsdk:mapbox-android-sdk:9.6.2"
-        const val turf = "com.mapbox.mapboxsdk:mapbox-sdk-turf:5.8.0"
+        const val turf = "com.mapbox.mapboxsdk:mapbox-sdk-turf:5.9.0-alpha.1"
         const val search = "com.mapbox.search:mapbox-search-android:1.0.0-beta.15"
-        const val services = "com.mapbox.mapboxsdk:mapbox-sdk-services:5.8.0"
+        const val services = "com.mapbox.mapboxsdk:mapbox-sdk-services:5.9.0-alpha.1"
         const val navigation = "com.mapbox.navigation:ui:1.6.1"
         const val annotationPlugin = "com.mapbox.mapboxsdk:mapbox-android-plugin-annotation-v9:0.9.0"
-        const val localizationPlugin = "com.mapbox.mapboxsdk:mapbox-android-plugin-localization-v9:0.12.0"
     }
 
     object GoogleLibs {
@@ -102,6 +90,6 @@ object Deps {
 
     const val timber = "com.jakewharton.timber:timber:4.7.1"
 
-    const val viewBindingPropertyDelegate = "com.github.kirich1409:viewbindingpropertydelegate:1.4.6"
+    const val viewBindingPropertyDelegate = "com.github.kirich1409:viewbindingpropertydelegate:1.4.7"
 
 }
