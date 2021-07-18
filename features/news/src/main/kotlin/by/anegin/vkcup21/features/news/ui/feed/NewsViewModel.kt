@@ -57,8 +57,6 @@ internal class NewsViewModel @Inject constructor(
                 }
             }
         }
-
-        loadFeed()
     }
 
     fun retryLoadFeed() {

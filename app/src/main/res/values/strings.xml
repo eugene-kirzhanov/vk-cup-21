@@ -1,5 +1,8 @@
 <resources>
     <string name="app_name" translatable="false">VkCup\'21</string>
     <string name="feature_title_taxi">Taxi</string>
-    <string name="feature_title_news">News cards</string>
+    <string name="feature_title_news">News Cards</string>
+    <string name="feature_title_videoeditor">Video Editor</string>
+    <string name="feature_title_tictactoe">Tic-Tac-Toe</string>
+    <string name="feature_title_voiceeditor">Voice Editor</string>
 </resources>

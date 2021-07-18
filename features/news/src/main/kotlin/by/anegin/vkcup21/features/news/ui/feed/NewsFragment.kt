@@ -113,6 +113,10 @@ internal class NewsFragment : Fragment(R.layout.fragment_news), SwipeableFeedLay
             } else {
                 appNavigator.navigateUp()
             }
+        } else {
+            if (viewModel.frontPost.value == null) {
+                viewModel.retryLoadFeed()
+            }
         }
     }
 

@@ -1,4 +1,7 @@
 <resources>
     <string name="feature_title_taxi">Такси</string>
     <string name="feature_title_news">Новости с карточками</string>
+    <string name="feature_title_videoeditor">Видеоредактор</string>
+    <string name="feature_title_tictactoe">Крестики-нолики</string>
+    <string name="feature_title_voiceeditor">Обработка голоса</string>
 </resources>
