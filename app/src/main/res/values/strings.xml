@@ -1,4 +1,5 @@
 <resources>
-    <string name="app_name" translatable="false">VkCup</string>
+    <string name="app_name" translatable="false">VkCup\'21</string>
     <string name="feature_title_taxi">Taxi</string>
+    <string name="feature_title_news">News cards</string>
 </resources>

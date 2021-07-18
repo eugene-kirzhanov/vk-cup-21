@@ -29,7 +29,8 @@ android {
     buildFeatures.viewBinding = true
 
     dynamicFeatures = mutableSetOf(
-        ":features:taxi"
+        ":features:taxi",
+        ":features:news"
     )
 
     signingConfigs {
@@ -87,6 +88,7 @@ dependencies {
     api(Deps.AndroidX.activity)
     api(Deps.AndroidX.fragment)
     api(Deps.AndroidX.constraintLayout)
+    api(Deps.AndroidX.preferences)
 
     api(Deps.Design.material)
 

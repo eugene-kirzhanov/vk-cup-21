@@ -30,6 +30,10 @@ internal class FeatureSelectionFragment : Fragment(R.layout.fragment_feature_sel
         binding.buttonShowTaxiFeature.setOnClickListener {
             appNavigator.navigateTo(FeatureSelectionFragmentDirections.toTaxiFeature())
         }
+
+        binding.buttonShowNewsFeature.setOnClickListener {
+            appNavigator.navigateTo(FeatureSelectionFragmentDirections.toNewsFeature())
+        }
     }
 
 }

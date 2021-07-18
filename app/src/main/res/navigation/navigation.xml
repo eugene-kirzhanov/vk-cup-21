@@ -12,6 +12,9 @@
         <action
             android:id="@+id/to_taxi_feature"
             app:destination="@id/feature_graph_taxi" />
+        <action
+            android:id="@+id/to_news_feature"
+            app:destination="@id/feature_graph_news" />
     </fragment>
 
     <include-dynamic
@@ -19,5 +22,11 @@
         app:graphPackage="by.anegin.vkcup21.taxi"
         app:graphResName="navigation_taxi"
         app:moduleName="taxi" />
+
+    <include-dynamic
+        android:id="@+id/feature_graph_news"
+        app:graphPackage="by.anegin.vkcup21.news"
+        app:graphResName="navigation_news"
+        app:moduleName="news" />
 
 </navigation>

@@ -31,7 +31,7 @@ import by.anegin.vkcup21.core.util.hideKeyboard
 import by.anegin.vkcup21.core.util.isDestroyed
 import by.anegin.vkcup21.core.util.observe
 import by.anegin.vkcup21.core.util.showKeyboard
-import by.anegin.vkcup21.di.taxi.TaxiModuleDependencies
+import by.anegin.vkcup21.di.MainModuleDependencies
 import by.anegin.vkcup21.features.taxi.data.impl.google.toLatLng
 import by.anegin.vkcup21.features.taxi.data.impl.mapbox.toLatLng
 import by.anegin.vkcup21.features.taxi.data.models.Address
@@ -140,7 +140,7 @@ internal class TaxiOrderingFragment : Fragment(R.layout.fragment_taxi_ordering) 
 
         DaggerTaxiComponent.builder()
             .context(context.applicationContext)
-            .taxiModuleDependencies(EntryPointAccessors.fromApplication(context, TaxiModuleDependencies::class.java))
+            .mainModuleDependencies(EntryPointAccessors.fromApplication(context, MainModuleDependencies::class.java))
             .build()
             .injectTaxiOrderingFragment(this)
 

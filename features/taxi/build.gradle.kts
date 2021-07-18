@@ -44,8 +44,6 @@ dependencies {
 
     implementation(Deps.Coroutines.playServices)
 
-    implementation(Deps.AndroidX.preferences)
-
     kapt(Deps.Dagger.compiler)
 
     implementation(Deps.PlayServices.location)

@@ -1,3 +1,4 @@
 <resources>
     <string name="feature_title_taxi">Такси</string>
+    <string name="feature_title_news">Новости с карточками</string>
 </resources>
