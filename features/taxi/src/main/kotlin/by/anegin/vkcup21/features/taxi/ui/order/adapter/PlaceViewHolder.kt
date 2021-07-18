@@ -1,8 +1,8 @@
 package by.anegin.vkcup21.features.taxi.ui.order.adapter
 
 import android.view.ViewGroup
+import by.anegin.vkcup21.core.util.ViewBindingViewHolder
 import by.anegin.vkcup21.features.taxi.data.models.Place
-import by.anegin.vkcup21.features.taxi.ui.order.util.ViewBindingViewHolder
 import by.anegin.vkcup21.taxi.databinding.ListitemPlaceBinding
 
 internal class PlaceViewHolder(

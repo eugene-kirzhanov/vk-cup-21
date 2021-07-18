@@ -30,6 +30,7 @@ object Deps {
         const val fragment = "androidx.fragment:fragment-ktx:1.4.0-alpha04"
         const val constraintLayout = "androidx.constraintlayout:constraintlayout:2.1.0-beta02"
         const val preferences = "androidx.preference:preference:1.1.1"
+        const val browser = "androidx.browser:browser:1.3.0"
     }
 
     object Design {
@@ -86,6 +87,12 @@ object Deps {
 
     object GoogleLibs {
         const val places = "com.google.android.libraries.places:places:2.4.0"
+    }
+
+    object Glide {
+        private const val version = "4.12.0"
+        const val runtime = "com.github.bumptech.glide:glide:$version"
+        const val compiler = "com.github.bumptech.glide:compiler:$version"
     }
 
     object OkHttp3 {

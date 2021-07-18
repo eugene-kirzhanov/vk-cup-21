@@ -43,7 +43,12 @@ dependencies {
 
     implementation(kotlin("stdlib-jdk8"))
 
+    implementation(Deps.AndroidX.browser)
+
     kapt(Deps.Dagger.compiler)
+
+    implementation(Deps.Glide.runtime)
+    kapt(Deps.Glide.compiler)
 
     implementation(Deps.Vk.core) {
         exclude(group = "com.squareup.okhttp3") // moved to app-module, as used in multiple feature-module

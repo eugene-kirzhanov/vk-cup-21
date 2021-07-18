@@ -2,8 +2,8 @@ package by.anegin.vkcup21.features.taxi.ui.order.adapter
 
 import android.view.ViewGroup
 import androidx.core.content.ContextCompat
+import by.anegin.vkcup21.core.util.ViewBindingViewHolder
 import by.anegin.vkcup21.features.taxi.ui.order.models.RouteVariant
-import by.anegin.vkcup21.features.taxi.ui.order.util.ViewBindingViewHolder
 import by.anegin.vkcup21.taxi.R
 import by.anegin.vkcup21.taxi.databinding.ListitemRouteVariantBinding
 

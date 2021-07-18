@@ -26,7 +26,7 @@ import com.vk.api.sdk.auth.VKScope
 import dagger.hilt.android.EntryPointAccessors
 import javax.inject.Inject
 
-class LoginFragment : Fragment(R.layout.fragment_login) {
+internal class LoginFragment : Fragment(R.layout.fragment_login) {
 
     @Inject
     lateinit var appNavigator: AppNavigator
@@ -83,7 +83,7 @@ class LoginFragment : Fragment(R.layout.fragment_login) {
 
     private fun login() {
         VK.logout()
-        VK.login(requireActivity(), scopes = listOf(VKScope.WALL, VKScope.PHOTOS))
+        VK.login(requireActivity(), scopes = listOf(VKScope.WALL, VKScope.PHOTOS, VKScope.FRIENDS))
     }
 
     private val startActivityForResultCallback = object : StartActivityForResultDispatcher.Callback {
