@@ -14,4 +14,11 @@
 
     <style name="Theme.VkCup.AppBar" parent="ThemeOverlay.AppCompat.DayNight.ActionBar" />
 
+    <style name="MyVK.Transparent" parent="android:Theme">
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowContentOverlay">@null</item>
+        <item name="android:windowNoTitle">true</item>
+    </style>
+
 </resources>

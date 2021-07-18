@@ -2,6 +2,7 @@ plugins {
     id("com.android.dynamic-feature")
     kotlin("android")
     kotlin("kapt")
+    id("androidx.navigation.safeargs.kotlin")
 }
 
 android {
@@ -43,4 +44,11 @@ dependencies {
     implementation(kotlin("stdlib-jdk8"))
 
     kapt(Deps.Dagger.compiler)
+
+    implementation(Deps.Vk.core) {
+        exclude(group = "com.squareup.okhttp3") // moved to app-module, as used in multiple feature-module
+    }
+    implementation(Deps.Vk.api) {
+        exclude(group = "com.google.code.gson") // moved to app-module, as used in multiple feature-module
+    }
 }

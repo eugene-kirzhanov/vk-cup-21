@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="common.logout">Logout</string>
+
+    <string name="login.title">Login required</string>
+    <string name="login.hint">In order to show you recommendations, you need to log in with your VK account</string>
+    <string name="login.log_in">Login</string>
+    <string name="login.failed">Login failed. Please try again later</string>
+</resources>

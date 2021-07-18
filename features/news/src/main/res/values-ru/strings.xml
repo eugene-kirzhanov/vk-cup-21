@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="common.logout">Выход</string>
+
+    <string name="login.title">Требуется вход</string>
+    <string name="login.hint">Чтобы мы могли показать рекомендации, вам необходимо войти под вашим аккаунтом ВКонтакте</string>
+    <string name="login.log_in">Войти</string>
+    <string name="login.failed">Произошла ошибка. Попробуйте повторить позже</string>
+</resources>

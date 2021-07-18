@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <style name="Theme.VkCup.News">
+        <item name="colorPrimary">@color/primary</item>
+        <item name="colorPrimaryDark">@color/primary</item>
+        <item name="android:textColorPrimary">@color/text_primary</item>
+        <item name="android:textColorSecondary">@color/text_secondary</item>
+        <item name="android:textViewStyle">@style/NewsTextViewStyle</item>
+        <item name="materialButtonStyle">@style/NewsButtonStyle</item>
+    </style>
+
+    <style name="NewsTextViewStyle" parent="@style/Base.Widget.MaterialComponents.TextView">
+        <item name="android:fontFamily">@font/vk_sans_family</item>
+    </style>
+
+    <style name="NewsButtonStyle" parent="@style/Widget.MaterialComponents.Button">
+        <item name="android:fontFamily">@font/vk_sans_family</item>
+    </style>
+
+</resources>

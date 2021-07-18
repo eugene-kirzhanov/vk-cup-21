@@ -88,6 +88,20 @@ object Deps {
         const val places = "com.google.android.libraries.places:places:2.4.0"
     }
 
+    object OkHttp3 {
+        private const val version = "4.9.1"
+        const val okhttp = "com.squareup.okhttp3:okhttp:$version"
+        const val loggingInterceptor = "com.squareup.okhttp3:logging-interceptor:$version"
+    }
+
+    object Vk {
+        private const val version = "3.1.0"
+        const val core = "com.vk:android-sdk-core:$version"
+        const val api = "com.vk:android-sdk-api:$version"
+    }
+
+    const val gson = "com.google.code.gson:gson:2.8.7"
+
     const val timber = "com.jakewharton.timber:timber:4.7.1"
 
     const val viewBindingPropertyDelegate = "com.github.kirich1409:viewbindingpropertydelegate:1.4.7"

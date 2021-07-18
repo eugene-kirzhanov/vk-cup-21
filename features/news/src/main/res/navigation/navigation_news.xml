@@ -3,11 +3,20 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     app:moduleName="news"
-    app:startDestination="@id/news_main">
+    app:startDestination="@id/news_feed">
 
     <fragment
-        android:id="@+id/news_main"
-        android:name="by.anegin.vkcup21.features.news.ui.NewsFragment"
-        tools:layout="@layout/fragment_news" />
+        android:id="@+id/news_feed"
+        android:name="by.anegin.vkcup21.features.news.ui.feed.NewsFragment"
+        tools:layout="@layout/fragment_news">
+        <action
+            android:id="@+id/to_login"
+            app:destination="@id/login" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/login"
+        android:name="by.anegin.vkcup21.features.news.ui.login.LoginFragment"
+        tools:layout="@layout/fragment_login" />
 
 </navigation>

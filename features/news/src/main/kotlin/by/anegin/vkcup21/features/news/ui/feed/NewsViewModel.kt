@@ -1,4 +1,4 @@
-package by.anegin.vkcup21.features.news.ui
+package by.anegin.vkcup21.features.news.ui.feed
 
 import androidx.lifecycle.ViewModel
 import javax.inject.Inject

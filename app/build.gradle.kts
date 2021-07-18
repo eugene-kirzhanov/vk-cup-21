@@ -109,6 +109,11 @@ dependencies {
 
     api(Deps.viewBindingPropertyDelegate)
 
+    api(Deps.OkHttp3.okhttp)
+    api(Deps.OkHttp3.loggingInterceptor)
+
+    api(Deps.gson)
+
     implementation(Deps.PlayServices.basement)
 }
 

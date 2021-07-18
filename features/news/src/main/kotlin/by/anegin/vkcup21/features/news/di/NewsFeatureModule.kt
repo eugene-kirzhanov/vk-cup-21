@@ -4,7 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import by.anegin.vkcup21.di.ViewModelFactory
 import by.anegin.vkcup21.di.ViewModelKey
-import by.anegin.vkcup21.features.news.ui.NewsViewModel
+import by.anegin.vkcup21.features.news.ui.feed.NewsViewModel
 import dagger.Binds
 import dagger.Module
 import dagger.multibindings.IntoMap

@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:dist="http://schemas.android.com/apk/distribution"
+    xmlns:tools="http://schemas.android.com/tools"
     package="by.anegin.vkcup21.news">
 
     <dist:module
@@ -14,5 +15,23 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <application tools:ignore="AllowBackup">
+
+        <activity
+            android:name="com.vk.api.sdk.ui.VKWebViewAuthActivity"
+            android:theme="@style/MyVK.Transparent"
+            tools:replace="theme" />
+
+        <!-- Disable VKInitProvider to manually initialize VK SDK
+             due to unavailability of com_vk_sdk_AppId resource in feature module -->
+        <!--suppress AndroidDomInspection -->
+        <provider
+            android:name="com.vk.api.sdk.internal.VKInitProvider"
+            android:enabled="false"
+            tools:ignore="ExportedContentProvider"
+            tools:replace="enabled" />
+
+    </application>
 
 </manifest>
